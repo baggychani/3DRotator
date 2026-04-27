@@ -1,0 +1,62 @@
+.eyebrow {
+  margin: 0 0 0.85rem;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.steps {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0;
+  margin: 1rem 0 1.25rem;
+  color: var(--muted);
+  list-style-position: inside;
+}
+
+.upload,
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #10131d;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.upload input {
+  display: none;
+}
+
+button.secondary {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.side-actions {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+button.slim {
+  min-height: 2.4rem;
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr 0.45fr;
+  gap: 0.6rem;
+}

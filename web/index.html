@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>3D Rotator</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel intro">
+        <h1>이미지를 3D로 돌리고 PNG로 저장하세요.</h1>
+        <p>
+          이미지를 넣고 회전, 입체 그림자, 말풍선 꼬리를 조절한 뒤 투명 PNG로 다운로드할 수 있습니다.
+        </p>
+        <ol class="steps">
+          <li>이미지 선택</li>
+          <li>오른쪽 옵션 조절</li>
+          <li>PNG 다운로드</li>
+        </ol>
+        <label class="upload">
+          <input id="imageInput" type="file" accept="image/*" />
+          이미지 선택
+        </label>
+        <div class="side-actions">
+          <button id="downloadButton" type="button">PNG 다운로드</button>
+          <button id="resetAllButton" type="button" class="secondary">전체 기본값</button>
+        </div>
+      </section>
+
+      <section id="stageCard" class="stage-card" data-preview-theme="light">
+        <canvas id="canvas" width="4320" height="7680" aria-label="미리보기"></canvas>
+      </section>
+
+      <section class="panel controls" aria-label="편집 옵션">
+        <h2>프리셋</h2>
+        <label>프리셋 선택 <select id="presetSelect"></select></label>
+        <div class="button-row">
+          <button id="savePresetButton" type="button">현재 설정 저장</button>
+          <button id="deletePresetButton" type="button" class="secondary">삭제</button>
+        </div>
+
+        <h2>미리보기</h2>
+        <label>
+          배경 테마
+          <select data-control="previewTheme">
+            <option value="light">밝은 배경</option>
+            <option value="checker">체크보드</option>
+            <option value="dark">어두운 배경</option>
+          </select>
+        </label>
+
+        <h2>3D 회전</h2>
+        <label>
+          X축 회전 <output data-output-for="rotateX">0°</output>
+          <input data-control="rotateX" type="range" min="-80" max="80" step="1" value="0" />
+          <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
+        </label>
+        <label>
+          Y축 회전 <output data-output-for="rotateY">0°</output>
+          <input data-control="rotateY" type="range" min="-80" max="80" step="1" value="0" />
+          <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
+        </label>
+        <label>
+          Z축 회전 <output data-output-for="rotateZ">0°</output>
+          <input data-control="rotateZ" type="range" min="-80" max="80" step="1" value="0" />
+          <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
+        </label>
+        <label>원근감 <input data-control="perspective" type="range" min="900" max="3200" value="1400" /></label>
+        <label>크기 <input data-control="scale" type="range" min="35" max="95" value="68" /></label>
+        <label class="switch-field"><input data-control="fitToCanvas" type="checkbox" checked /><span class="switch"></span><span>잘림 방지 자동 맞춤</span></label>
+        <button id="resetTransformButton" type="button" class="secondary slim">3D 회전 기본값</button>
+
+        <h2>그림자</h2>
+        <label class="switch-field"><input data-control="shadowEnabled" type="checkbox" checked /><span class="switch"></span><span>그림자 표시</span></label>
+        <label>강도 <input data-control="shadowAlpha" type="range" min="0" max="80" value="28" /></label>
+        <label>흐림 <input data-control="shadowBlur" type="range" min="0" max="80" value="26" /></label>
+        <label>X 이동 <input data-control="shadowX" type="range" min="-160" max="160" value="18" /></label>
+        <label>Y 이동 <input data-control="shadowY" type="range" min="-160" max="220" value="24" /></label>
+        <label>바닥 기울기 <input data-control="shadowSkew" type="range" min="-80" max="80" value="10" /></label>
+        <button id="resetShadowButton" type="button" class="secondary slim">그림자 기본값</button>
+
+        <h2>말풍선 꼬리</h2>
+        <label class="switch-field"><input data-control="tailEnabled" type="checkbox" /><span class="switch"></span><span>꼬리 표시</span></label>
+        <label>위치 <input data-control="tailPosition" type="range" min="10" max="90" value="72" /></label>
+        <label>너비 <input data-control="tailWidth" type="range" min="20" max="220" value="64" /></label>
+        <label>길이 <input data-control="tailLength" type="range" min="20" max="260" value="118" /></label>
+        <label>방향 <input data-control="tailLean" type="range" min="-180" max="180" value="86" /></label>
+        <label>채우기 <input data-control="tailColor" type="color" value="#ffffff" /></label>
+        <button id="resetTailButton" type="button" class="secondary slim">꼬리 기본값</button>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,54 @@
+export const initialState = {
+  rotateX: 0,
+  rotateY: 0,
+  rotateZ: 0,
+  perspective: 1400,
+  scale: 68,
+  fitToCanvas: true,
+  shadowEnabled: true,
+  shadowAlpha: 28,
+  shadowBlur: 26,
+  shadowX: 18,
+  shadowY: 24,
+  shadowSkew: 10,
+  tailEnabled: false,
+  tailPosition: 72,
+  tailWidth: 64,
+  tailLength: 118,
+  tailLean: 86,
+  tailColor: "#ffffff",
+  previewTheme: "light",
+};
+
+export const builtInPresets = [
+  {
+    name: "평면 기본",
+    values: { ...initialState },
+  },
+  {
+    name: "추천 3D 기울기",
+    values: {
+      ...initialState,
+      rotateX: 10,
+      rotateY: -24,
+      rotateZ: -6,
+      shadowAlpha: 36,
+      shadowBlur: 34,
+      shadowX: 28,
+      shadowY: 38,
+    },
+  },
+  {
+    name: "말풍선 강조",
+    values: {
+      ...initialState,
+      rotateX: 8,
+      rotateY: -18,
+      scale: 64,
+      tailEnabled: true,
+      tailWidth: 78,
+      tailLength: 150,
+      tailLean: 40,
+    },
+  },
+];

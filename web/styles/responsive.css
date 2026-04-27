@@ -1,0 +1,12 @@
+@media (max-width: 1050px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .stage-card,
+  .controls {
+    height: auto;
+    min-height: auto;
+    max-height: none;
+  }
+}
