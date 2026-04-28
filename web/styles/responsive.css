@@ -84,6 +84,11 @@
     grid-template-columns: 1fr 1fr;
   }
 
+  .preset-sync-actions button {
+    min-height: 2.35rem;
+    font-size: 0.78rem;
+  }
+
   .upload,
   button {
     min-height: 3.25rem;
