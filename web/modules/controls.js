@@ -67,6 +67,33 @@ function bindTouchRangeDrag(control, state, onChange) {
   }
 
   control.classList.add("touch-range-drag");
+  dragSurface.classList.add("touch-range-surface");
+
+  function finishDrag(event) {
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    activePointerId = null;
+    dragSurface.classList.remove("is-dragging-range");
+    window.removeEventListener("pointermove", handleDragMove);
+    window.removeEventListener("pointerup", finishDrag);
+    window.removeEventListener("pointercancel", finishDrag);
+
+    if (dragSurface.hasPointerCapture(event.pointerId)) {
+      dragSurface.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function handleDragMove(event) {
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    setRangeValue(control, state, onChange, getRangeStepValue(control, event.clientX));
+  }
 
   dragSurface.addEventListener("pointerdown", (event) => {
     if (!isTouchRangePointer(event) || event.pointerType === "mouse") {
@@ -87,31 +114,12 @@ function bindTouchRangeDrag(control, state, onChange) {
 
     event.preventDefault();
     activePointerId = event.pointerId;
+    dragSurface.classList.add("is-dragging-range");
     dragSurface.setPointerCapture(event.pointerId);
+    window.addEventListener("pointermove", handleDragMove, { passive: false });
+    window.addEventListener("pointerup", finishDrag, { passive: false });
+    window.addEventListener("pointercancel", finishDrag, { passive: false });
   });
-
-  dragSurface.addEventListener("pointermove", (event) => {
-    if (event.pointerId !== activePointerId) {
-      return;
-    }
-
-    event.preventDefault();
-    setRangeValue(control, state, onChange, getRangeStepValue(control, event.clientX));
-  });
-
-  for (const eventName of ["pointerup", "pointercancel"]) {
-    dragSurface.addEventListener(eventName, (event) => {
-      if (event.pointerId !== activePointerId) {
-        return;
-      }
-
-      activePointerId = null;
-
-      if (dragSurface.hasPointerCapture(event.pointerId)) {
-        dragSurface.releasePointerCapture(event.pointerId);
-      }
-    });
-  }
 }
 
 function resetControlToDefault(control, state, initialState, onChange) {

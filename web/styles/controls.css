@@ -105,6 +105,15 @@ input[type="range"]::-moz-range-thumb {
 }
 
 @media (pointer: coarse) {
+  .touch-range-surface {
+    touch-action: pan-y;
+  }
+
+  .touch-range-surface.is-dragging-range {
+    cursor: grabbing;
+    touch-action: none;
+  }
+
   input[type="range"].touch-range-drag {
     pointer-events: none;
   }
