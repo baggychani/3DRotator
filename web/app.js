@@ -2,7 +2,13 @@ import { bindControlEvents, syncControlsFromState } from "./modules/controls.js"
 import { builtInPresets, initialState } from "./modules/defaults.js";
 import { loadImageFromFile } from "./modules/image-loader.js";
 import { createPlaceholderImage } from "./modules/placeholder.js";
-import { deleteUserPreset, getPresetOptions, saveUserPreset } from "./modules/presets.js";
+import {
+  createPresetExportData,
+  deleteUserPreset,
+  getPresetOptions,
+  importUserPresets,
+  saveUserPreset,
+} from "./modules/presets.js";
 import { getTailDragValues, getTailHandlePoint, renderScene } from "./modules/renderer.js";
 
 const state = { ...initialState };
@@ -21,6 +27,9 @@ const resetTailButton = document.querySelector("#resetTailButton");
 const presetSelect = document.querySelector("#presetSelect");
 const savePresetButton = document.querySelector("#savePresetButton");
 const deletePresetButton = document.querySelector("#deletePresetButton");
+const exportPresetsButton = document.querySelector("#exportPresetsButton");
+const importPresetsButton = document.querySelector("#importPresetsButton");
+const presetImportInput = document.querySelector("#presetImportInput");
 const controls = [...document.querySelectorAll("[data-control]")];
 const transformKeys = [
   "rotateX",
@@ -41,7 +50,7 @@ const shadowKeys = [
 const tailKeys = ["tailPosition", "tailWidth", "tailLength", "tailLean", "tailColor"];
 const EXPORT_ALPHA_THRESHOLD = 4;
 const EXPORT_PADDING = 96;
-const TAIL_HANDLE_HIT_RADIUS = 22;
+const TAIL_HANDLE_HIT_RADIUS = window.matchMedia("(pointer: coarse)").matches ? 34 : 22;
 let isDraggingTailHandle = false;
 
 function render() {
@@ -219,6 +228,17 @@ function getFileBaseName(fileName) {
   return safeName || "3d-rotated-image";
 }
 
+function downloadJsonFile(fileName, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.download = fileName;
+  link.href = url;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 imageInput.addEventListener("change", async () => {
   const file = imageInput.files?.[0];
 
@@ -250,6 +270,7 @@ canvas.addEventListener("pointerdown", (event) => {
   }
 
   isDraggingTailHandle = true;
+  event.preventDefault();
   canvas.setPointerCapture(event.pointerId);
   applyTailDragValues(canvasPoint);
 });
@@ -259,6 +280,7 @@ canvas.addEventListener("pointermove", (event) => {
     return;
   }
 
+  event.preventDefault();
   applyTailDragValues(getCanvasPoint(event));
 });
 
@@ -311,6 +333,32 @@ deletePresetButton.addEventListener("click", () => {
 
   deleteUserPreset(Number(selectedPreset.id.replace("user:", "")));
   refreshPresetOptions("built-in:0");
+});
+
+exportPresetsButton.addEventListener("click", () => {
+  downloadJsonFile("3d-rotator-presets.json", createPresetExportData());
+});
+
+importPresetsButton.addEventListener("click", () => {
+  presetImportInput.click();
+});
+
+presetImportInput.addEventListener("change", async () => {
+  const file = presetImportInput.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  try {
+    const importedCount = importUserPresets(JSON.parse(await file.text()));
+    refreshPresetOptions();
+    window.alert(`${importedCount}개의 프리셋을 불러왔습니다.`);
+  } catch (error) {
+    window.alert(error.message);
+  } finally {
+    presetImportInput.value = "";
+  }
 });
 
 downloadButton.addEventListener("click", () => {

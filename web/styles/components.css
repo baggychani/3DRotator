@@ -29,6 +29,9 @@ button {
   color: #10131d;
   font-weight: 800;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .upload input {
@@ -59,4 +62,9 @@ button.slim {
   display: grid;
   grid-template-columns: 1fr 0.45fr;
   gap: 0.6rem;
+}
+
+.preset-sync-actions {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 0.6rem;
 }

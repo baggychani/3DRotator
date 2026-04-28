@@ -63,6 +63,7 @@ input[type="range"] {
   padding: 0;
   background: transparent;
   cursor: pointer;
+  touch-action: pan-y;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
@@ -114,6 +115,9 @@ input[type="range"]::-moz-range-thumb {
   align-items: center;
   column-gap: 0.75rem;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .switch-field input {
