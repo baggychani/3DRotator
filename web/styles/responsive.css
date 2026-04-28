@@ -12,6 +12,10 @@
 }
 
 @media (max-width: 720px) {
+  :root {
+    --mobile-preview-height: clamp(12rem, 40svh, 21rem);
+  }
+
   body {
     overflow-x: hidden;
   }
@@ -64,9 +68,9 @@
   }
 
   canvas {
-    width: min(100%, calc((100svh - 19rem) * 9 / 16));
-    max-height: calc(100svh - 19rem);
-    min-height: 13rem;
+    width: min(100%, calc(var(--mobile-preview-height) * 9 / 16));
+    max-height: var(--mobile-preview-height);
+    min-height: 12rem;
   }
 
   .button-row {
@@ -214,9 +218,13 @@
 
 @supports not (height: 100svh) {
   @media (max-width: 720px) {
+    :root {
+      --mobile-preview-height: clamp(12rem, 40vh, 21rem);
+    }
+
     canvas {
-      width: min(100%, calc((100vh - 19rem) * 9 / 16));
-      max-height: calc(100vh - 19rem);
+      width: min(100%, calc(var(--mobile-preview-height) * 9 / 16));
+      max-height: var(--mobile-preview-height);
     }
   }
 }
