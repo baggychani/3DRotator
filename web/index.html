@@ -11,14 +11,6 @@
       <aside class="left-rail">
         <section class="panel intro">
           <h1>이미지를 3D로 돌리고 PNG로 저장하세요.</h1>
-          <p>
-            이미지를 넣고 회전, 입체 그림자, 말풍선 꼬리를 조절한 뒤 투명 PNG로 다운로드할 수 있습니다.
-          </p>
-          <ol class="steps">
-            <li>이미지 선택</li>
-            <li>오른쪽 옵션 조절</li>
-            <li>PNG 다운로드</li>
-          </ol>
           <label class="upload">
             <input id="imageInput" type="file" accept="image/*" />
             이미지 선택
@@ -37,6 +29,17 @@
       </aside>
 
       <section id="stageCard" class="stage-card" data-preview-theme="light">
+        <button
+          id="previewThemeButton"
+          class="preview-theme-button"
+          type="button"
+          aria-label="미리보기 배경 바꾸기"
+          title="미리보기 배경 바꾸기"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
         <canvas id="canvas" width="2160" height="3840" aria-label="미리보기"></canvas>
       </section>
 
@@ -53,30 +56,20 @@
           <input id="presetImportInput" type="file" accept="application/json,.json" hidden />
         </div>
 
-        <h2>미리보기</h2>
-        <label>
-          배경 테마
-          <select data-control="previewTheme">
-            <option value="light">밝은 배경</option>
-            <option value="checker">체크보드</option>
-            <option value="dark">어두운 배경</option>
-          </select>
-        </label>
-
         <details class="control-group" open>
           <summary>3D 회전</summary>
           <label>
-            X축 회전 <output data-output-for="rotateX">0°</output>
+            <span class="axis-label">X축 회전</span> <output data-output-for="rotateX">0°</output>
             <input data-control="rotateX" type="range" min="-80" max="80" step="1" value="0" />
             <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
           </label>
           <label>
-            Y축 회전 <output data-output-for="rotateY">0°</output>
+            <span class="axis-label">Y축 회전</span> <output data-output-for="rotateY">0°</output>
             <input data-control="rotateY" type="range" min="-80" max="80" step="1" value="0" />
             <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
           </label>
           <label>
-            Z축 회전 <output data-output-for="rotateZ">0°</output>
+            <span class="axis-label">Z축 회전</span> <output data-output-for="rotateZ">0°</output>
             <input data-control="rotateZ" type="range" min="-80" max="80" step="1" value="0" />
             <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
           </label>

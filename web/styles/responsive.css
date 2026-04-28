@@ -26,7 +26,10 @@
   }
 
   .stage-card {
+    position: sticky;
+    top: 0.5rem;
     order: 2;
+    z-index: 8;
     height: auto;
     min-height: auto;
     padding: 0.7rem;
@@ -41,11 +44,6 @@
   .panel {
     padding: 1rem;
     border-radius: 1.1rem;
-  }
-
-  .intro p,
-  .steps {
-    display: none;
   }
 
   .intro h1 {
@@ -71,9 +69,9 @@
   }
 
   canvas {
-    width: min(100%, calc((100svh - 15rem) * 9 / 16));
-    max-height: calc(100svh - 15rem);
-    min-height: 18rem;
+    width: min(100%, calc((100svh - 19rem) * 9 / 16));
+    max-height: calc(100svh - 19rem);
+    min-height: 13rem;
   }
 
   .button-row {
@@ -148,8 +146,8 @@
 @supports not (height: 100svh) {
   @media (max-width: 720px) {
     canvas {
-      width: min(100%, calc((100vh - 15rem) * 9 / 16));
-      max-height: calc(100vh - 15rem);
+      width: min(100%, calc((100vh - 19rem) * 9 / 16));
+      max-height: calc(100vh - 19rem);
     }
   }
 }

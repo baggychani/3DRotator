@@ -18,6 +18,7 @@ let presets = [];
 
 const canvas = document.querySelector("#canvas");
 const stageCard = document.querySelector("#stageCard");
+const previewThemeButton = document.querySelector("#previewThemeButton");
 const imageInput = document.querySelector("#imageInput");
 const downloadButton = document.querySelector("#downloadButton");
 const resetAllButton = document.querySelector("#resetAllButton");
@@ -50,12 +51,51 @@ const shadowKeys = [
 const tailKeys = ["tailPosition", "tailWidth", "tailLength", "tailLean", "tailColor"];
 const EXPORT_ALPHA_THRESHOLD = 4;
 const EXPORT_PADDING = 96;
+const canvasProfiles = {
+  desktop: { width: 2160, height: 3840 },
+  mobile: { width: 1080, height: 1920 },
+};
+const mobileRenderQuery = window.matchMedia("(max-width: 720px), (pointer: coarse)");
+const previewThemes = ["light", "checker", "dark"];
+const previewThemeLabels = {
+  light: "밝은 배경",
+  checker: "체크보드",
+  dark: "어두운 배경",
+};
 const TAIL_HANDLE_HIT_RADIUS = window.matchMedia("(pointer: coarse)").matches ? 34 : 22;
 let isDraggingTailHandle = false;
+let pendingRenderId = null;
+
+function syncCanvasResolution() {
+  const nextProfile = mobileRenderQuery.matches ? canvasProfiles.mobile : canvasProfiles.desktop;
+
+  if (canvas.width === nextProfile.width && canvas.height === nextProfile.height) {
+    return false;
+  }
+
+  canvas.width = nextProfile.width;
+  canvas.height = nextProfile.height;
+  canvas.dataset.renderProfile = mobileRenderQuery.matches ? "mobile" : "desktop";
+
+  return true;
+}
 
 function render() {
+  pendingRenderId = null;
+  syncCanvasResolution();
   stageCard.dataset.previewTheme = state.previewTheme;
+  previewThemeButton.dataset.previewTheme = state.previewTheme;
+  previewThemeButton.title = `미리보기 배경: ${previewThemeLabels[state.previewTheme]}`;
+  previewThemeButton.setAttribute("aria-label", previewThemeButton.title);
   renderScene(canvas, image, state);
+}
+
+function scheduleRender() {
+  if (pendingRenderId !== null) {
+    return;
+  }
+
+  pendingRenderId = window.requestAnimationFrame(render);
 }
 
 function copyStateValues(source) {
@@ -135,7 +175,7 @@ function applyTailDragValues(canvasPoint) {
   state.tailLean = getClampedControlValue("tailLean", nextValues.tailLean);
   state.tailLength = getClampedControlValue("tailLength", nextValues.tailLength);
   syncControlsFromState(controls, state);
-  render();
+  scheduleRender();
 }
 
 function refreshPresetOptions(selectedId = presetSelect.value) {
@@ -220,6 +260,15 @@ function createSmartExportCanvas(sourceCanvas) {
   return exportCanvas;
 }
 
+function createHighResolutionExportSource() {
+  const exportSource = document.createElement("canvas");
+  exportSource.width = canvasProfiles.desktop.width;
+  exportSource.height = canvasProfiles.desktop.height;
+  renderScene(exportSource, image, state, { showTailHandle: false });
+
+  return exportSource;
+}
+
 function getFileBaseName(fileName) {
   const lastDotIndex = fileName.lastIndexOf(".");
   const baseName = lastDotIndex > 0 ? fileName.slice(0, lastDotIndex) : fileName;
@@ -301,7 +350,7 @@ canvas.addEventListener("pointercancel", (event) => {
   }
 });
 
-bindControlEvents(controls, state, initialState, render);
+bindControlEvents(controls, state, initialState, scheduleRender);
 
 presetSelect.addEventListener("change", () => {
   const selectedPreset = presets.find((preset) => preset.id === presetSelect.value);
@@ -361,20 +410,30 @@ presetImportInput.addEventListener("change", async () => {
   }
 });
 
+previewThemeButton.addEventListener("click", () => {
+  const currentIndex = previewThemes.indexOf(state.previewTheme);
+  state.previewTheme = previewThemes[(currentIndex + 1) % previewThemes.length];
+  render();
+});
+
 downloadButton.addEventListener("click", () => {
-  renderScene(canvas, image, state, { showTailHandle: false });
-  const exportCanvas = createSmartExportCanvas(canvas);
+  const exportCanvas = createSmartExportCanvas(createHighResolutionExportSource());
   const link = document.createElement("a");
   link.download = `${sourceFileBaseName}_3D.png`;
   link.href = exportCanvas.toDataURL("image/png");
   link.click();
-  render();
 });
 
 resetAllButton.addEventListener("click", resetAllControls);
 resetTransformButton.addEventListener("click", () => resetKeys(transformKeys));
 resetShadowButton.addEventListener("click", () => resetKeys(shadowKeys));
 resetTailButton.addEventListener("click", () => resetKeys(tailKeys));
+mobileRenderQuery.addEventListener("change", render);
+window.addEventListener("resize", () => {
+  if (syncCanvasResolution()) {
+    render();
+  }
+});
 
 refreshPresetOptions("built-in:0");
 syncControlsFromState(controls, state);

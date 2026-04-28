@@ -7,15 +7,6 @@
   text-transform: uppercase;
 }
 
-.steps {
-  display: grid;
-  gap: 0.45rem;
-  padding: 0;
-  margin: 1rem 0 1.25rem;
-  color: var(--muted);
-  list-style-position: inside;
-}
-
 .upload,
 button {
   display: inline-flex;

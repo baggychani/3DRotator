@@ -47,6 +47,11 @@ label {
   font-size: 0.9rem;
 }
 
+.axis-label {
+  color: var(--text);
+  font-weight: 800;
+}
+
 output {
   justify-self: end;
   margin-top: -1.35rem;
