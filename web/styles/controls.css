@@ -104,6 +104,12 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
+@media (pointer: coarse) {
+  input[type="range"].touch-range-drag {
+    pointer-events: none;
+  }
+}
+
 .tick-labels {
   display: flex;
   justify-content: space-between;

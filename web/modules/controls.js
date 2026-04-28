@@ -59,24 +59,38 @@ function bindTouchRangeDrag(control, state, onChange) {
     return;
   }
 
+  const dragSurface = control.closest("label");
   let activePointerId = null;
 
-  control.addEventListener("pointerdown", (event) => {
+  if (!dragSurface) {
+    return;
+  }
+
+  control.classList.add("touch-range-drag");
+
+  dragSurface.addEventListener("pointerdown", (event) => {
     if (!isTouchRangePointer(event) || event.pointerType === "mouse") {
       return;
     }
 
-    event.preventDefault();
+    const rect = control.getBoundingClientRect();
+    const isNearTrackY =
+      event.clientY >= rect.top - MOBILE_THUMB_HIT_RADIUS &&
+      event.clientY <= rect.bottom + MOBILE_THUMB_HIT_RADIUS;
 
-    if (Math.abs(event.clientX - getRangeThumbX(control)) > MOBILE_THUMB_HIT_RADIUS) {
+    if (
+      !isNearTrackY ||
+      Math.abs(event.clientX - getRangeThumbX(control)) > MOBILE_THUMB_HIT_RADIUS
+    ) {
       return;
     }
 
+    event.preventDefault();
     activePointerId = event.pointerId;
-    control.setPointerCapture(event.pointerId);
+    dragSurface.setPointerCapture(event.pointerId);
   });
 
-  control.addEventListener("pointermove", (event) => {
+  dragSurface.addEventListener("pointermove", (event) => {
     if (event.pointerId !== activePointerId) {
       return;
     }
@@ -86,15 +100,15 @@ function bindTouchRangeDrag(control, state, onChange) {
   });
 
   for (const eventName of ["pointerup", "pointercancel"]) {
-    control.addEventListener(eventName, (event) => {
+    dragSurface.addEventListener(eventName, (event) => {
       if (event.pointerId !== activePointerId) {
         return;
       }
 
       activePointerId = null;
 
-      if (control.hasPointerCapture(event.pointerId)) {
-        control.releasePointerCapture(event.pointerId);
+      if (dragSurface.hasPointerCapture(event.pointerId)) {
+        dragSurface.releasePointerCapture(event.pointerId);
       }
     });
   }
