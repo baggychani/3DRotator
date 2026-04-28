@@ -13,11 +13,12 @@
           <h1>이미지를 3D로 돌리고 PNG로 저장하세요.</h1>
           <label class="upload">
             <input id="imageInput" type="file" accept="image/*" />
-            이미지 선택
+            <span id="imageSelectLabel">이미지 선택</span>
           </label>
+          <p id="imageStatus" class="image-status">이미지를 선택하면 바로 미리보기에 적용됩니다.</p>
           <div class="side-actions">
             <button id="downloadButton" type="button">PNG 다운로드</button>
-            <button id="resetAllButton" type="button" class="secondary">전체 기본값</button>
+            <button id="resetAllButton" type="button" class="secondary">편집값 초기화</button>
           </div>
         </section>
         <a class="credit-link" href="https://github.com/baggychani/3DRotator" target="_blank" rel="noreferrer">
@@ -45,18 +46,26 @@
 
       <section class="panel controls" aria-label="편집 옵션">
         <h2>프리셋</h2>
-        <label>프리셋 선택 <select id="presetSelect"></select></label>
-        <div class="button-row">
-          <button id="savePresetButton" type="button">현재 설정 저장</button>
-          <button id="deletePresetButton" type="button" class="secondary">삭제</button>
-        </div>
-        <div class="button-row preset-sync-actions">
-          <button id="exportPresetsButton" type="button" class="secondary">프리셋 내보내기</button>
-          <button id="importPresetsButton" type="button" class="secondary">프리셋 불러오기</button>
-          <input id="presetImportInput" type="file" accept="application/json,.json" hidden />
+        <nav class="mobile-control-tabs" aria-label="모바일 편집 섹션">
+          <button type="button" data-mobile-tab="presets" aria-pressed="false">프리셋</button>
+          <button type="button" data-mobile-tab="transform" aria-pressed="true">회전</button>
+          <button type="button" data-mobile-tab="shadow" aria-pressed="false">그림자</button>
+          <button type="button" data-mobile-tab="tail" aria-pressed="false">꼬리</button>
+        </nav>
+        <div class="preset-panel" data-mobile-panel="presets">
+          <label>프리셋 선택 <select id="presetSelect"></select></label>
+          <div class="button-row">
+            <button id="savePresetButton" type="button">현재 설정 저장</button>
+            <button id="deletePresetButton" type="button" class="secondary">삭제</button>
+          </div>
+          <div class="button-row preset-sync-actions">
+            <button id="exportPresetsButton" type="button" class="secondary">프리셋 내보내기</button>
+            <button id="importPresetsButton" type="button" class="secondary">프리셋 불러오기</button>
+            <input id="presetImportInput" type="file" accept="application/json,.json" hidden />
+          </div>
         </div>
 
-        <details class="control-group" open>
+        <details class="control-group" data-mobile-panel="transform" open>
           <summary>3D 회전</summary>
           <label>
             <span class="axis-label">X축 회전</span> <output data-output-for="rotateX">0°</output>
@@ -79,7 +88,7 @@
           <button id="resetTransformButton" type="button" class="secondary slim">3D 회전 기본값</button>
         </details>
 
-        <details class="control-group">
+        <details class="control-group" data-mobile-panel="shadow">
           <summary>그림자</summary>
           <label class="switch-field"><input data-control="shadowEnabled" type="checkbox" checked /><span class="switch"></span><span>그림자 표시</span></label>
           <label>강도 <input data-control="shadowAlpha" type="range" min="0" max="80" value="28" /></label>
@@ -90,7 +99,7 @@
           <button id="resetShadowButton" type="button" class="secondary slim">그림자 기본값</button>
         </details>
 
-        <details class="control-group" open>
+        <details class="control-group" data-mobile-panel="tail" open>
           <summary>말풍선 꼬리</summary>
           <label class="switch-field"><input data-control="tailEnabled" type="checkbox" /><span class="switch"></span><span>꼬리 표시</span></label>
           <label>위치 <input data-control="tailPosition" type="range" min="10" max="90" value="72" /></label>
@@ -102,6 +111,28 @@
         </details>
       </section>
     </main>
+
+    <div id="presetDialog" class="dialog-backdrop" role="presentation" hidden>
+      <form class="preset-dialog" role="dialog" aria-modal="true" aria-labelledby="presetDialogTitle">
+        <h2 id="presetDialogTitle">현재 설정 저장</h2>
+        <label>
+          프리셋 이름
+          <input id="presetNameInput" type="text" maxlength="40" autocomplete="off" required />
+        </label>
+        <p id="presetNameError" class="dialog-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button id="cancelPresetSaveButton" type="button" class="secondary">취소</button>
+          <button type="submit">저장</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="mobile-action-bar" aria-label="빠른 작업">
+      <button id="mobileImageButton" type="button" class="secondary">사진 선택</button>
+      <button id="mobileDownloadButton" type="button">PNG 저장</button>
+      <button id="mobileResetButton" type="button" class="secondary">값 초기화</button>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script src="./app.js" type="module"></script>
   </body>

@@ -18,7 +18,7 @@
 
   .app {
     gap: 0.85rem;
-    padding: 0.75rem;
+    padding: 0.75rem 0.75rem calc(5.9rem + env(safe-area-inset-bottom));
   }
 
   .left-rail {
@@ -52,16 +52,11 @@
   }
 
   .side-actions {
-    position: sticky;
-    bottom: 0.65rem;
-    z-index: 10;
-    grid-template-columns: 1fr 0.8fr;
-    margin-top: 0.85rem;
-    padding: 0.65rem;
-    border: 1px solid var(--line);
-    border-radius: 1.1rem;
-    background: rgba(16, 19, 29, 0.92);
-    backdrop-filter: blur(14px);
+    display: none;
+  }
+
+  .image-status {
+    margin-bottom: 0;
   }
 
   .credit-link {
@@ -90,6 +85,80 @@
   .upload,
   button {
     min-height: 3.25rem;
+  }
+
+  .controls h2:first-child {
+    display: none;
+  }
+
+  .mobile-control-tabs {
+    position: sticky;
+    top: calc(0.5rem + env(safe-area-inset-top));
+    z-index: 6;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.35rem;
+    margin: -0.2rem 0 0.85rem;
+    padding: 0.35rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(16, 19, 29, 0.88);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-control-tabs button {
+    min-height: 2.4rem;
+    padding: 0 0.45rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .mobile-control-tabs button[aria-pressed="true"] {
+    border-color: rgba(142, 167, 255, 0.45);
+    background: var(--accent);
+    color: #10131d;
+  }
+
+  [data-mobile-panel][data-mobile-active="false"] {
+    display: none;
+  }
+
+  [data-mobile-panel][data-mobile-active="true"] {
+    display: block;
+  }
+
+  .control-group[data-mobile-active="true"] {
+    margin-top: 0;
+  }
+
+  .mobile-action-bar {
+    position: fixed;
+    right: 0.75rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    left: 0.75rem;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: 1fr 1fr 0.8fr;
+    gap: 0.5rem;
+    padding: 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: 1.2rem;
+    background: rgba(16, 19, 29, 0.92);
+    box-shadow: 0 1rem 2.8rem rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobile-action-bar button {
+    min-height: 2.85rem;
+    padding: 0 0.65rem;
+    font-size: 0.82rem;
+  }
+
+  .toast {
+    bottom: calc(5.65rem + env(safe-area-inset-bottom));
   }
 
   input[type="range"] {

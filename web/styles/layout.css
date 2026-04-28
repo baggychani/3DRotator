@@ -158,5 +158,9 @@ canvas {
   aspect-ratio: 9 / 16;
   object-fit: contain;
   cursor: default;
+  touch-action: pan-y;
+}
+
+canvas.is-dragging-tail {
   touch-action: none;
 }

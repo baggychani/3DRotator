@@ -7,6 +7,14 @@
   margin-top: 0;
 }
 
+.preset-panel {
+  margin-bottom: 0.35rem;
+}
+
+.mobile-control-tabs {
+  display: none;
+}
+
 .control-group {
   border-top: 1px solid var(--line);
   padding-top: 0.9rem;

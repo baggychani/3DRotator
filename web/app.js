@@ -20,8 +20,13 @@ const canvas = document.querySelector("#canvas");
 const stageCard = document.querySelector("#stageCard");
 const previewThemeButton = document.querySelector("#previewThemeButton");
 const imageInput = document.querySelector("#imageInput");
+const imageSelectLabel = document.querySelector("#imageSelectLabel");
+const imageStatus = document.querySelector("#imageStatus");
 const downloadButton = document.querySelector("#downloadButton");
 const resetAllButton = document.querySelector("#resetAllButton");
+const mobileImageButton = document.querySelector("#mobileImageButton");
+const mobileDownloadButton = document.querySelector("#mobileDownloadButton");
+const mobileResetButton = document.querySelector("#mobileResetButton");
 const resetTransformButton = document.querySelector("#resetTransformButton");
 const resetShadowButton = document.querySelector("#resetShadowButton");
 const resetTailButton = document.querySelector("#resetTailButton");
@@ -31,7 +36,15 @@ const deletePresetButton = document.querySelector("#deletePresetButton");
 const exportPresetsButton = document.querySelector("#exportPresetsButton");
 const importPresetsButton = document.querySelector("#importPresetsButton");
 const presetImportInput = document.querySelector("#presetImportInput");
+const presetDialog = document.querySelector("#presetDialog");
+const presetDialogForm = presetDialog.querySelector("form");
+const presetNameInput = document.querySelector("#presetNameInput");
+const presetNameError = document.querySelector("#presetNameError");
+const cancelPresetSaveButton = document.querySelector("#cancelPresetSaveButton");
 const controls = [...document.querySelectorAll("[data-control]")];
+const mobileTabButtons = [...document.querySelectorAll("[data-mobile-tab]")];
+const mobilePanels = [...document.querySelectorAll("[data-mobile-panel]")];
+const toast = document.querySelector("#toast");
 const transformKeys = [
   "rotateX",
   "rotateY",
@@ -65,6 +78,8 @@ const previewThemeLabels = {
 const TAIL_HANDLE_HIT_RADIUS = window.matchMedia("(pointer: coarse)").matches ? 34 : 22;
 let isDraggingTailHandle = false;
 let pendingRenderId = null;
+let toastTimerId = null;
+let presetDialogReturnFocusElement = null;
 
 function syncCanvasResolution() {
   const nextProfile = mobileRenderQuery.matches ? canvasProfiles.mobile : canvasProfiles.desktop;
@@ -139,6 +154,19 @@ function resetAllControls() {
   applyState({ ...initialState, tailEnabled: currentTailEnabled });
 }
 
+function showToast(message) {
+  if (!toast) {
+    return;
+  }
+
+  toast.textContent = message;
+  toast.classList.add("is-visible");
+  window.clearTimeout(toastTimerId);
+  toastTimerId = window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+  }, 1800);
+}
+
 function getCanvasPoint(event) {
   const rect = canvas.getBoundingClientRect();
 
@@ -192,6 +220,12 @@ function refreshPresetOptions(selectedId = presetSelect.value) {
   if (presets.some((preset) => preset.id === selectedId)) {
     presetSelect.value = selectedId;
   }
+}
+
+function getNextPresetName() {
+  const userPresetCount = presets.filter((preset) => preset.removable).length;
+
+  return `내 프리셋 ${userPresetCount + 1}`;
 }
 
 function getContentBounds(sourceCanvas) {
@@ -277,6 +311,11 @@ function getFileBaseName(fileName) {
   return safeName || "3d-rotated-image";
 }
 
+function setLoadedImageStatus(file) {
+  imageSelectLabel.textContent = "사진 변경";
+  imageStatus.textContent = `${file.name} 불러옴`;
+}
+
 function downloadJsonFile(fileName, data) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -288,7 +327,7 @@ function downloadJsonFile(fileName, data) {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-imageInput.addEventListener("change", async () => {
+async function loadSelectedImage() {
   const file = imageInput.files?.[0];
 
   if (!file) {
@@ -298,11 +337,67 @@ imageInput.addEventListener("change", async () => {
   try {
     image = await loadImageFromFile(file);
     sourceFileBaseName = getFileBaseName(file.name);
+    setLoadedImageStatus(file);
     render();
+    showToast("이미지를 불러왔습니다.");
   } catch (error) {
     window.alert(error.message);
   }
-});
+}
+
+function downloadPng() {
+  const exportCanvas = createSmartExportCanvas(createHighResolutionExportSource());
+  const link = document.createElement("a");
+  link.download = `${sourceFileBaseName}_3D.png`;
+  link.href = exportCanvas.toDataURL("image/png");
+  link.click();
+  showToast("PNG 저장을 시작했습니다.");
+}
+
+function resetAllAndNotify() {
+  resetAllControls();
+  showToast("편집값을 기본값으로 되돌렸습니다.");
+}
+
+function showMobilePanel(panelName) {
+  for (const button of mobileTabButtons) {
+    button.setAttribute("aria-pressed", String(button.dataset.mobileTab === panelName));
+  }
+
+  for (const panel of mobilePanels) {
+    const isActivePanel = panel.dataset.mobilePanel === panelName;
+    panel.dataset.mobileActive = String(isActivePanel);
+
+    if (isActivePanel && panel instanceof HTMLDetailsElement) {
+      panel.open = true;
+    }
+  }
+}
+
+function closePresetDialog() {
+  presetDialog.hidden = true;
+  presetNameError.textContent = "";
+  presetDialogReturnFocusElement?.focus();
+  presetDialogReturnFocusElement = null;
+}
+
+function openPresetDialog() {
+  presetDialogReturnFocusElement = document.activeElement;
+  presetNameInput.value = getNextPresetName();
+  presetNameError.textContent = "";
+  presetDialog.hidden = false;
+  presetNameInput.focus();
+  presetNameInput.select();
+}
+
+function saveCurrentPreset(name) {
+  saveUserPreset(name, copyStateValues(state));
+  refreshPresetOptions();
+  presetSelect.value = presets.at(-1).id;
+  showToast("현재 설정을 프리셋으로 저장했습니다.");
+}
+
+imageInput.addEventListener("change", loadSelectedImage);
 
 canvas.addEventListener("pointerdown", (event) => {
   const handlePoint = getTailHandlePoint(canvas, image, state);
@@ -320,6 +415,7 @@ canvas.addEventListener("pointerdown", (event) => {
 
   isDraggingTailHandle = true;
   event.preventDefault();
+  canvas.classList.add("is-dragging-tail");
   canvas.setPointerCapture(event.pointerId);
   applyTailDragValues(canvasPoint);
 });
@@ -339,11 +435,13 @@ canvas.addEventListener("pointerup", (event) => {
   }
 
   isDraggingTailHandle = false;
+  canvas.classList.remove("is-dragging-tail");
   canvas.releasePointerCapture(event.pointerId);
 });
 
 canvas.addEventListener("pointercancel", (event) => {
   isDraggingTailHandle = false;
+  canvas.classList.remove("is-dragging-tail");
 
   if (canvas.hasPointerCapture(event.pointerId)) {
     canvas.releasePointerCapture(event.pointerId);
@@ -360,16 +458,34 @@ presetSelect.addEventListener("change", () => {
   }
 });
 
-savePresetButton.addEventListener("click", () => {
-  const name = window.prompt("저장할 프리셋 이름을 입력하세요.");
+savePresetButton.addEventListener("click", openPresetDialog);
 
-  if (!name?.trim()) {
+presetDialogForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = presetNameInput.value.trim();
+
+  if (!name) {
+    presetNameError.textContent = "프리셋 이름을 입력하세요.";
+    presetNameInput.focus();
     return;
   }
 
-  saveUserPreset(name.trim(), copyStateValues(state));
-  refreshPresetOptions();
-  presetSelect.value = presets.at(-1).id;
+  saveCurrentPreset(name);
+  closePresetDialog();
+});
+
+cancelPresetSaveButton.addEventListener("click", closePresetDialog);
+
+presetDialog.addEventListener("click", (event) => {
+  if (event.target === presetDialog) {
+    closePresetDialog();
+  }
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !presetDialog.hidden) {
+    closePresetDialog();
+  }
 });
 
 deletePresetButton.addEventListener("click", () => {
@@ -417,17 +533,19 @@ previewThemeButton.addEventListener("click", () => {
 });
 
 downloadButton.addEventListener("click", () => {
-  const exportCanvas = createSmartExportCanvas(createHighResolutionExportSource());
-  const link = document.createElement("a");
-  link.download = `${sourceFileBaseName}_3D.png`;
-  link.href = exportCanvas.toDataURL("image/png");
-  link.click();
+  downloadPng();
 });
 
-resetAllButton.addEventListener("click", resetAllControls);
+mobileImageButton.addEventListener("click", () => imageInput.click());
+mobileDownloadButton.addEventListener("click", downloadPng);
+mobileResetButton.addEventListener("click", resetAllAndNotify);
+resetAllButton.addEventListener("click", resetAllAndNotify);
 resetTransformButton.addEventListener("click", () => resetKeys(transformKeys));
 resetShadowButton.addEventListener("click", () => resetKeys(shadowKeys));
 resetTailButton.addEventListener("click", () => resetKeys(tailKeys));
+for (const button of mobileTabButtons) {
+  button.addEventListener("click", () => showMobilePanel(button.dataset.mobileTab));
+}
 mobileRenderQuery.addEventListener("change", render);
 window.addEventListener("resize", () => {
   if (syncCanvasResolution()) {
@@ -436,5 +554,6 @@ window.addEventListener("resize", () => {
 });
 
 refreshPresetOptions("built-in:0");
+showMobilePanel("transform");
 syncControlsFromState(controls, state);
 render();
