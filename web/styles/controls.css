@@ -7,6 +7,38 @@
   margin-top: 0;
 }
 
+.control-group {
+  border-top: 1px solid var(--line);
+  padding-top: 0.9rem;
+  margin-top: 1rem;
+}
+
+.control-group summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.control-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.control-group summary::after {
+  color: var(--muted);
+  content: "+";
+  font-size: 1.25rem;
+}
+
+.control-group[open] summary::after {
+  content: "-";
+}
+
 label {
   display: grid;
   gap: 0.45rem;

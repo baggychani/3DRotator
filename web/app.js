@@ -3,10 +3,11 @@ import { builtInPresets, initialState } from "./modules/defaults.js";
 import { loadImageFromFile } from "./modules/image-loader.js";
 import { createPlaceholderImage } from "./modules/placeholder.js";
 import { deleteUserPreset, getPresetOptions, saveUserPreset } from "./modules/presets.js";
-import { renderScene } from "./modules/renderer.js";
+import { getTailDragValues, getTailHandlePoint, renderScene } from "./modules/renderer.js";
 
 const state = { ...initialState };
 let image = createPlaceholderImage();
+let sourceFileBaseName = "3d-rotated-image";
 let presets = [];
 
 const canvas = document.querySelector("#canvas");
@@ -40,6 +41,8 @@ const shadowKeys = [
 const tailKeys = ["tailPosition", "tailWidth", "tailLength", "tailLean", "tailColor"];
 const EXPORT_ALPHA_THRESHOLD = 4;
 const EXPORT_PADDING = 96;
+const TAIL_HANDLE_HIT_RADIUS = 22;
+let isDraggingTailHandle = false;
 
 function render() {
   stageCard.dataset.previewTheme = state.previewTheme;
@@ -85,6 +88,45 @@ function resetKeys(keys) {
 function resetAllControls() {
   const currentTailEnabled = state.tailEnabled;
   applyState({ ...initialState, tailEnabled: currentTailEnabled });
+}
+
+function getCanvasPoint(event) {
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+    y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+  };
+}
+
+function getCanvasScale() {
+  return canvas.width / canvas.getBoundingClientRect().width;
+}
+
+function getClampedControlValue(key, value) {
+  const control = controls.find((item) => item.dataset.control === key);
+
+  if (!control || control.type === "checkbox" || control.type === "color") {
+    return value;
+  }
+
+  const min = Number(control.min);
+  const max = Number(control.max);
+
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function applyTailDragValues(canvasPoint) {
+  const nextValues = getTailDragValues(canvas, image, state, canvasPoint);
+
+  if (!nextValues) {
+    return;
+  }
+
+  state.tailLean = getClampedControlValue("tailLean", nextValues.tailLean);
+  state.tailLength = getClampedControlValue("tailLength", nextValues.tailLength);
+  syncControlsFromState(controls, state);
+  render();
 }
 
 function refreshPresetOptions(selectedId = presetSelect.value) {
@@ -169,6 +211,14 @@ function createSmartExportCanvas(sourceCanvas) {
   return exportCanvas;
 }
 
+function getFileBaseName(fileName) {
+  const lastDotIndex = fileName.lastIndexOf(".");
+  const baseName = lastDotIndex > 0 ? fileName.slice(0, lastDotIndex) : fileName;
+  const safeName = baseName.trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_");
+
+  return safeName || "3d-rotated-image";
+}
+
 imageInput.addEventListener("change", async () => {
   const file = imageInput.files?.[0];
 
@@ -178,9 +228,54 @@ imageInput.addEventListener("change", async () => {
 
   try {
     image = await loadImageFromFile(file);
+    sourceFileBaseName = getFileBaseName(file.name);
     render();
   } catch (error) {
     window.alert(error.message);
+  }
+});
+
+canvas.addEventListener("pointerdown", (event) => {
+  const handlePoint = getTailHandlePoint(canvas, image, state);
+
+  if (!handlePoint) {
+    return;
+  }
+
+  const canvasPoint = getCanvasPoint(event);
+  const hitRadius = TAIL_HANDLE_HIT_RADIUS * getCanvasScale();
+
+  if (Math.hypot(canvasPoint.x - handlePoint.x, canvasPoint.y - handlePoint.y) > hitRadius) {
+    return;
+  }
+
+  isDraggingTailHandle = true;
+  canvas.setPointerCapture(event.pointerId);
+  applyTailDragValues(canvasPoint);
+});
+
+canvas.addEventListener("pointermove", (event) => {
+  if (!isDraggingTailHandle) {
+    return;
+  }
+
+  applyTailDragValues(getCanvasPoint(event));
+});
+
+canvas.addEventListener("pointerup", (event) => {
+  if (!isDraggingTailHandle) {
+    return;
+  }
+
+  isDraggingTailHandle = false;
+  canvas.releasePointerCapture(event.pointerId);
+});
+
+canvas.addEventListener("pointercancel", (event) => {
+  isDraggingTailHandle = false;
+
+  if (canvas.hasPointerCapture(event.pointerId)) {
+    canvas.releasePointerCapture(event.pointerId);
   }
 });
 
@@ -219,11 +314,13 @@ deletePresetButton.addEventListener("click", () => {
 });
 
 downloadButton.addEventListener("click", () => {
+  renderScene(canvas, image, state, { showTailHandle: false });
   const exportCanvas = createSmartExportCanvas(canvas);
   const link = document.createElement("a");
-  link.download = "3d-rotated-image.png";
+  link.download = `${sourceFileBaseName}_3D.png`;
   link.href = exportCanvas.toDataURL("image/png");
   link.click();
+  render();
 });
 
 resetAllButton.addEventListener("click", resetAllControls);

@@ -2,7 +2,10 @@ import { projectPoint3d, rotatePoint3d } from "./geometry.js";
 
 const BASE_CANVAS_WIDTH = 1080;
 const FIT_MARGIN = 96;
+const TAIL_HANDLE_RADIUS = 20;
+const TEXTURE_PADDING = 1;
 const TAIL_OVERLAP = 10;
+const paddedTextureSources = new WeakMap();
 let quadRenderer;
 
 function getRenderScale(canvas) {
@@ -87,6 +90,7 @@ function drawPath(context, points) {
 
 function offsetShadowPoints(canvas, points, state) {
   return points.map((point, index) => ({
+    ...point,
     x:
       point.x +
       scaleValue(canvas, state.shadowX) +
@@ -174,18 +178,43 @@ function fitSceneToCanvas(canvas, scene, state) {
   return fittedScene;
 }
 
-function drawShadow(context, canvas, scene, state) {
+function getFittedScene(canvas, image, state) {
+  const localScene = createLocalScene(canvas, image, state);
+  const projectedScene = projectScene(canvas, state, localScene);
+
+  return fitSceneToCanvas(canvas, projectedScene, state);
+}
+
+function normalizeVector(vector) {
+  const length = Math.hypot(vector.x, vector.y) || 1;
+
+  return {
+    x: vector.x / length,
+    y: vector.y / length,
+  };
+}
+
+function dotVectors(first, second) {
+  return first.x * second.x + first.y * second.y;
+}
+
+function drawShadow(context, canvas, scene, state, image) {
   if (!state.shadowEnabled || state.shadowAlpha <= 0) {
     return;
   }
 
   context.save();
-  context.filter = `blur(${scaleValue(canvas, state.shadowBlur)}px)`;
-  context.fillStyle = `rgba(0, 0, 0, ${state.shadowAlpha / 100})`;
-  drawPath(context, offsetShadowPoints(canvas, scene.imageCorners, state));
-  context.fill();
+  context.filter = `blur(${scaleValue(canvas, state.shadowBlur)}px) brightness(0) opacity(${
+    state.shadowAlpha / 100
+  })`;
+
+  const shadowCorners = offsetShadowPoints(canvas, scene.imageCorners, state);
+  if (!drawImageWithQuadRenderer(context, canvas, image, shadowCorners)) {
+    drawImageWithAffineTransform(context, image, shadowCorners);
+  }
 
   if (scene.tailPath) {
+    context.fillStyle = "black";
     drawPath(context, offsetShadowPoints(canvas, scene.tailPath, state));
     context.fill();
   }
@@ -205,6 +234,25 @@ function drawTail(context, scene, state) {
   context.restore();
 }
 
+function drawTailHandle(context, canvas, scene) {
+  if (!scene.tailPath) {
+    return;
+  }
+
+  const tip = scene.tailPath[1];
+  const radius = scaleValue(canvas, TAIL_HANDLE_RADIUS);
+
+  context.save();
+  context.beginPath();
+  context.arc(tip.x, tip.y, radius, 0, Math.PI * 2);
+  context.fillStyle = "rgba(142, 167, 255, 0.95)";
+  context.strokeStyle = "rgba(16, 19, 29, 0.9)";
+  context.lineWidth = Math.max(2, scaleValue(canvas, 2));
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
 function createShader(gl, type, source) {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
@@ -215,6 +263,34 @@ function createShader(gl, type, source) {
   }
 
   return shader;
+}
+
+function getPaddedTextureSource(image) {
+  if (paddedTextureSources.has(image)) {
+    return paddedTextureSources.get(image);
+  }
+
+  const paddedCanvas = document.createElement("canvas");
+  paddedCanvas.width = image.width + TEXTURE_PADDING * 2;
+  paddedCanvas.height = image.height + TEXTURE_PADDING * 2;
+  const paddedContext = paddedCanvas.getContext("2d");
+
+  paddedContext.clearRect(0, 0, paddedCanvas.width, paddedCanvas.height);
+  paddedContext.imageSmoothingEnabled = true;
+  paddedContext.imageSmoothingQuality = "high";
+  paddedContext.drawImage(image, TEXTURE_PADDING, TEXTURE_PADDING);
+  paddedTextureSources.set(image, paddedCanvas);
+
+  return paddedCanvas;
+}
+
+function getPaddedTextureCoordinates(image, textureSource) {
+  const left = TEXTURE_PADDING / textureSource.width;
+  const right = (TEXTURE_PADDING + image.width) / textureSource.width;
+  const top = TEXTURE_PADDING / textureSource.height;
+  const bottom = (TEXTURE_PADDING + image.height) / textureSource.height;
+
+  return [left, top, right, top, left, bottom, right, top, right, bottom, left, bottom];
 }
 
 function createQuadProgram(gl) {
@@ -265,22 +341,31 @@ function createQuadProgram(gl) {
 function getQuadRenderer(canvas) {
   if (!quadRenderer) {
     const renderCanvas = document.createElement("canvas");
-    const gl = renderCanvas.getContext("webgl", {
+    const contextOptions = {
       alpha: true,
       antialias: true,
       premultipliedAlpha: true,
       preserveDrawingBuffer: true,
-    });
+    };
+    const gl =
+      renderCanvas.getContext("webgl2", contextOptions) ??
+      renderCanvas.getContext("webgl", contextOptions);
 
     if (!gl) {
       return null;
     }
 
+    const isWebGl2 =
+      typeof WebGL2RenderingContext !== "undefined" && gl instanceof WebGL2RenderingContext;
     const program = createQuadProgram(gl);
     quadRenderer = {
       canvas: renderCanvas,
+      isWebGl2,
       gl,
       program,
+      anisotropyExtension:
+        gl.getExtension("EXT_texture_filter_anisotropic") ??
+        gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic"),
       positionBuffer: gl.createBuffer(),
       depthBuffer: gl.createBuffer(),
       texCoordBuffer: gl.createBuffer(),
@@ -333,7 +418,8 @@ function drawImageWithQuadRenderer(context, canvas, image, imageCorners) {
     bottomRight.depth,
     bottomLeft.depth,
   ];
-  const textureCoordinates = [0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1];
+  const textureSource = getPaddedTextureSource(image);
+  const textureCoordinates = getPaddedTextureCoordinates(image, textureSource);
   const texture = gl.createTexture();
 
   gl.viewport(0, 0, canvas.width, canvas.height);
@@ -363,9 +449,27 @@ function drawImageWithQuadRenderer(context, canvas, image, imageCorners) {
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureSource);
+
+  if (renderer.isWebGl2) {
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.generateMipmap(gl.TEXTURE_2D);
+
+    if (renderer.anisotropyExtension) {
+      const maxAnisotropy = gl.getParameter(
+        renderer.anisotropyExtension.MAX_TEXTURE_MAX_ANISOTROPY_EXT,
+      );
+      gl.texParameterf(
+        gl.TEXTURE_2D,
+        renderer.anisotropyExtension.TEXTURE_MAX_ANISOTROPY_EXT,
+        maxAnisotropy,
+      );
+    }
+  } else {
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  }
+
   gl.uniform2f(renderer.resolutionLocation, canvas.width, canvas.height);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
   gl.deleteTexture(texture);
@@ -391,18 +495,67 @@ function drawImageWithAffineTransform(context, image, imageCorners) {
   context.restore();
 }
 
-export function renderScene(canvas, image, state) {
+export function getTailHandlePoint(canvas, image, state) {
+  if (!state.tailEnabled) {
+    return null;
+  }
+
+  const scene = getFittedScene(canvas, image, state);
+
+  return scene.tailPath?.[1] ?? null;
+}
+
+export function getTailDragValues(canvas, image, state, canvasPoint) {
+  const scene = getFittedScene(canvas, image, state);
+
+  if (!scene.tailPath) {
+    return null;
+  }
+
+  const bottomLeft = scene.imageCorners[3];
+  const bottomRight = scene.imageCorners[2];
+  const edge = normalizeVector({
+    x: bottomRight.x - bottomLeft.x,
+    y: bottomRight.y - bottomLeft.y,
+  });
+  let outwardNormal = normalizeVector({ x: -edge.y, y: edge.x });
+
+  if (outwardNormal.y < 0) {
+    outwardNormal = { x: -outwardNormal.x, y: -outwardNormal.y };
+  }
+
+  const bottomVector = {
+    x: bottomRight.x - bottomLeft.x,
+    y: bottomRight.y - bottomLeft.y,
+  };
+  const anchor = {
+    x: bottomLeft.x + bottomVector.x * (state.tailPosition / 100),
+    y: bottomLeft.y + bottomVector.y * (state.tailPosition / 100),
+  };
+  const tipVector = {
+    x: canvasPoint.x - anchor.x,
+    y: canvasPoint.y - anchor.y,
+  };
+
+  return {
+    tailLean: dotVectors(tipVector, edge) / getRenderScale(canvas),
+    tailLength: dotVectors(tipVector, outwardNormal) / getRenderScale(canvas),
+  };
+}
+
+export function renderScene(canvas, image, state, options = {}) {
   const context = canvas.getContext("2d");
-  const localScene = createLocalScene(canvas, image, state);
-  const projectedScene = projectScene(canvas, state, localScene);
-  const fittedScene = fitSceneToCanvas(canvas, projectedScene, state);
+  const fittedScene = getFittedScene(canvas, image, state);
 
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
-  drawShadow(context, canvas, fittedScene, state);
+  drawShadow(context, canvas, fittedScene, state, image);
   drawTail(context, fittedScene, state);
   if (!drawImageWithQuadRenderer(context, canvas, image, fittedScene.imageCorners)) {
     drawImageWithAffineTransform(context, image, fittedScene.imageCorners);
+  }
+  if (options.showTailHandle !== false) {
+    drawTailHandle(context, canvas, fittedScene);
   }
 }
