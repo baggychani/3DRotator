@@ -47,6 +47,12 @@
   content: "-";
 }
 
+@media (max-width: 720px), (pointer: coarse) {
+  .control-group summary::after {
+    content: "";
+  }
+}
+
 label {
   display: grid;
   gap: 0.45rem;

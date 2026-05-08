@@ -69,6 +69,7 @@ const canvasProfiles = {
   mobile: { width: 1080, height: 1920 },
 };
 const mobileRenderQuery = window.matchMedia("(max-width: 720px), (pointer: coarse)");
+const mobileUiQuery = window.matchMedia("(max-width: 720px), (pointer: coarse)");
 const previewThemes = ["light", "checker", "dark"];
 const previewThemeLabels = {
   light: "밝은 배경",
@@ -80,6 +81,20 @@ let isDraggingTailHandle = false;
 let pendingRenderId = null;
 let toastTimerId = null;
 let presetDialogReturnFocusElement = null;
+
+function syncMobileDetailsMode() {
+  const groups = [...document.querySelectorAll("details.control-group")];
+
+  if (!groups.length) {
+    return;
+  }
+
+  if (mobileUiQuery.matches) {
+    for (const group of groups) {
+      group.open = true;
+    }
+  }
+}
 
 function syncCanvasResolution() {
   const nextProfile = mobileRenderQuery.matches ? canvasProfiles.mobile : canvasProfiles.desktop;
@@ -450,6 +465,16 @@ canvas.addEventListener("pointercancel", (event) => {
 
 bindControlEvents(controls, state, initialState, scheduleRender);
 
+for (const summary of document.querySelectorAll("details.control-group > summary")) {
+  summary.addEventListener("click", (event) => {
+    if (!mobileUiQuery.matches) {
+      return;
+    }
+
+    event.preventDefault();
+  });
+}
+
 presetSelect.addEventListener("change", () => {
   const selectedPreset = presets.find((preset) => preset.id === presetSelect.value);
 
@@ -547,6 +572,7 @@ for (const button of mobileTabButtons) {
   button.addEventListener("click", () => showMobilePanel(button.dataset.mobileTab));
 }
 mobileRenderQuery.addEventListener("change", render);
+mobileUiQuery.addEventListener("change", syncMobileDetailsMode);
 window.addEventListener("resize", () => {
   if (syncCanvasResolution()) {
     render();
@@ -556,4 +582,5 @@ window.addEventListener("resize", () => {
 refreshPresetOptions("built-in:0");
 showMobilePanel("transform");
 syncControlsFromState(controls, state);
+syncMobileDetailsMode();
 render();
