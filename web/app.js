@@ -327,8 +327,12 @@ function getFileBaseName(fileName) {
 }
 
 function setLoadedImageStatus(file) {
-  imageSelectLabel.textContent = "사진 변경";
-  imageStatus.textContent = `${file.name} 불러옴`;
+  if (imageSelectLabel) {
+    imageSelectLabel.textContent = "사진 변경";
+  }
+  if (imageStatus) {
+    imageStatus.textContent = `${file.name} 불러옴`;
+  }
 }
 
 function downloadJsonFile(fileName, data) {
