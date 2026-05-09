@@ -3,7 +3,11 @@ export function readControlValue(control) {
     return control.checked;
   }
 
-  if (control.type === "color" || control.tagName === "SELECT") {
+  if (control.type === "radio") {
+    return control.value;
+  }
+
+  if (control.type === "color" || control.tagName === "SELECT" || control.type === "hidden") {
     return control.value;
   }
 
@@ -132,6 +136,8 @@ function resetControlToDefault(control, state, initialState, onChange) {
   state[key] = initialState[key];
   if (control.type === "checkbox") {
     control.checked = state[key];
+  } else if (control.type === "radio") {
+    control.checked = control.value === state[key];
   } else {
     control.value = state[key];
   }
@@ -144,6 +150,8 @@ export function syncControlsFromState(controls, state) {
     const key = control.dataset.control;
     if (control.type === "checkbox") {
       control.checked = state[key];
+    } else if (control.type === "radio") {
+      control.checked = control.value === state[key];
     } else {
       control.value = state[key];
     }

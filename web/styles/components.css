@@ -31,10 +31,13 @@ button {
 
 .image-status {
   margin: 0.75rem 0 0;
+  max-width: 100%;
+  overflow: hidden;
   color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.45;
-  word-break: break-word;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 button.secondary {

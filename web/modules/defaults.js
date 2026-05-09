@@ -12,6 +12,7 @@ export const initialState = {
   shadowY: 24,
   shadowSkew: 10,
   tailEnabled: false,
+  tailSide: "top",
   tailPosition: 72,
   tailWidth: 64,
   tailLength: 118,

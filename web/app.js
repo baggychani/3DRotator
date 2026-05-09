@@ -61,7 +61,7 @@ const shadowKeys = [
   "shadowY",
   "shadowSkew",
 ];
-const tailKeys = ["tailPosition", "tailWidth", "tailLength", "tailLean", "tailColor"];
+const tailKeys = ["tailSide", "tailPosition", "tailWidth", "tailLength", "tailLean", "tailColor"];
 const EXPORT_ALPHA_THRESHOLD = 4;
 const EXPORT_PADDING = 96;
 const canvasProfiles = {
@@ -145,6 +145,10 @@ function normalizeStateValues(source) {
 
   delete normalizedState.tiltHorizontal;
   delete normalizedState.tiltVertical;
+
+  if (!["top", "right", "bottom", "left"].includes(normalizedState.tailSide)) {
+    normalizedState.tailSide = initialState.tailSide;
+  }
 
   return normalizedState;
 }
@@ -331,7 +335,8 @@ function setLoadedImageStatus(file) {
     imageSelectLabel.textContent = "사진 변경";
   }
   if (imageStatus) {
-    imageStatus.textContent = `${file.name} 불러옴`;
+    imageStatus.textContent = file.name;
+    imageStatus.title = file.name;
   }
 }
 
@@ -375,7 +380,7 @@ function downloadPng() {
 
 function resetAllAndNotify() {
   resetAllControls();
-  showToast("편집값을 기본값으로 되돌렸습니다.");
+  showToast("설정을 기본값으로 되돌렸습니다.");
 }
 
 function showMobilePanel(panelName) {

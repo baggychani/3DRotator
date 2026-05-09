@@ -91,10 +91,6 @@
     min-height: 3.25rem;
   }
 
-  .controls h2:first-child {
-    display: none;
-  }
-
   .mobile-control-tabs {
     position: sticky;
     top: calc(0.5rem + env(safe-area-inset-top));
@@ -124,18 +120,6 @@
     border-color: rgba(142, 167, 255, 0.45);
     background: var(--accent);
     color: #10131d;
-  }
-
-  [data-mobile-panel][data-mobile-active="false"] {
-    display: none;
-  }
-
-  [data-mobile-panel][data-mobile-active="true"] {
-    display: block;
-  }
-
-  .control-group[data-mobile-active="true"] {
-    margin-top: 0;
   }
 
   .mobile-action-bar {
@@ -199,6 +183,30 @@
 
   .tick-labels {
     font-size: 0.68rem;
+  }
+
+  .tail-side-diagram {
+    --tail-rw: 7rem;
+    --tail-rh: 4.5rem;
+    --tail-knob: 0.7rem;
+    width: calc(var(--tail-rw) + 4.4rem);
+    height: calc(var(--tail-rh) + 3.9rem);
+  }
+
+  .tail-hit--top,
+  .tail-hit--bottom {
+    width: 3.75rem;
+    height: 2.35rem;
+  }
+
+  .tail-hit--left,
+  .tail-hit--right {
+    width: 5.1rem;
+    height: 2.6rem;
+  }
+
+  .tail-hit__label {
+    font-size: 0.72rem;
   }
 }
 

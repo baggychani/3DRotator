@@ -42,18 +42,73 @@ function createLocalScene(canvas, image, state) {
     return { imageCorners, tailPath: null };
   }
 
-  const anchorX = -halfWidth + imageSize.width * (state.tailPosition / 100);
+  const tailSide = ["top", "right", "bottom", "left"].includes(state.tailSide)
+    ? state.tailSide
+    : "bottom";
+  const localEdges = {
+    top: {
+      start: { x: -halfWidth, y: -halfHeight, z: 0 },
+      end: { x: halfWidth, y: -halfHeight, z: 0 },
+      outwardNormal: { x: 0, y: -1, z: 0 },
+    },
+    right: {
+      start: { x: halfWidth, y: -halfHeight, z: 0 },
+      end: { x: halfWidth, y: halfHeight, z: 0 },
+      outwardNormal: { x: 1, y: 0, z: 0 },
+    },
+    bottom: {
+      start: { x: -halfWidth, y: halfHeight, z: 0 },
+      end: { x: halfWidth, y: halfHeight, z: 0 },
+      outwardNormal: { x: 0, y: 1, z: 0 },
+    },
+    left: {
+      start: { x: -halfWidth, y: -halfHeight, z: 0 },
+      end: { x: -halfWidth, y: halfHeight, z: 0 },
+      outwardNormal: { x: -1, y: 0, z: 0 },
+    },
+  };
+  const selectedEdge = localEdges[tailSide];
+  const edgeVector = {
+    x: selectedEdge.end.x - selectedEdge.start.x,
+    y: selectedEdge.end.y - selectedEdge.start.y,
+    z: 0,
+  };
+  const anchor = {
+    x: selectedEdge.start.x + edgeVector.x * (state.tailPosition / 100),
+    y: selectedEdge.start.y + edgeVector.y * (state.tailPosition / 100),
+    z: 0,
+  };
+  const edgeTangent = normalizeVector(edgeVector);
   const halfTailWidth = scaleValue(canvas, state.tailWidth) / 2;
-  const baseY = halfHeight - scaleValue(canvas, TAIL_OVERLAP);
+  const overlap = scaleValue(canvas, TAIL_OVERLAP);
+  const baseCenter = {
+    x: anchor.x - selectedEdge.outwardNormal.x * overlap,
+    y: anchor.y - selectedEdge.outwardNormal.y * overlap,
+    z: 0,
+  };
   const tip = {
-    x: anchorX + scaleValue(canvas, state.tailLean),
-    y: halfHeight + scaleValue(canvas, state.tailLength),
+    x:
+      anchor.x +
+      edgeTangent.x * scaleValue(canvas, state.tailLean) +
+      selectedEdge.outwardNormal.x * scaleValue(canvas, state.tailLength),
+    y:
+      anchor.y +
+      edgeTangent.y * scaleValue(canvas, state.tailLean) +
+      selectedEdge.outwardNormal.y * scaleValue(canvas, state.tailLength),
     z: 0,
   };
   const tailPath = [
-    { x: anchorX - halfTailWidth, y: baseY, z: 0 },
+    {
+      x: baseCenter.x - edgeTangent.x * halfTailWidth,
+      y: baseCenter.y - edgeTangent.y * halfTailWidth,
+      z: 0,
+    },
     tip,
-    { x: anchorX + halfTailWidth, y: baseY, z: 0 },
+    {
+      x: baseCenter.x + edgeTangent.x * halfTailWidth,
+      y: baseCenter.y + edgeTangent.y * halfTailWidth,
+      z: 0,
+    },
   ];
 
   return { imageCorners, tailPath };
@@ -512,26 +567,40 @@ export function getTailDragValues(canvas, image, state, canvasPoint) {
     return null;
   }
 
-  const bottomLeft = scene.imageCorners[3];
-  const bottomRight = scene.imageCorners[2];
+  const sideToCornerIndexes = {
+    top: [0, 1],
+    right: [1, 2],
+    bottom: [3, 2],
+    left: [0, 3],
+  };
+  const [startIndex, endIndex] = sideToCornerIndexes[state.tailSide] ?? sideToCornerIndexes.bottom;
+  const edgeStart = scene.imageCorners[startIndex];
+  const edgeEnd = scene.imageCorners[endIndex];
   const edge = normalizeVector({
-    x: bottomRight.x - bottomLeft.x,
-    y: bottomRight.y - bottomLeft.y,
+    x: edgeEnd.x - edgeStart.x,
+    y: edgeEnd.y - edgeStart.y,
   });
-  let outwardNormal = normalizeVector({ x: -edge.y, y: edge.x });
-
-  if (outwardNormal.y < 0) {
-    outwardNormal = { x: -outwardNormal.x, y: -outwardNormal.y };
-  }
-
-  const bottomVector = {
-    x: bottomRight.x - bottomLeft.x,
-    y: bottomRight.y - bottomLeft.y,
+  const edgeVector = {
+    x: edgeEnd.x - edgeStart.x,
+    y: edgeEnd.y - edgeStart.y,
+  };
+  const imageCenter = {
+    x: scene.imageCorners.reduce((sum, corner) => sum + corner.x, 0) / scene.imageCorners.length,
+    y: scene.imageCorners.reduce((sum, corner) => sum + corner.y, 0) / scene.imageCorners.length,
   };
   const anchor = {
-    x: bottomLeft.x + bottomVector.x * (state.tailPosition / 100),
-    y: bottomLeft.y + bottomVector.y * (state.tailPosition / 100),
+    x: edgeStart.x + edgeVector.x * (state.tailPosition / 100),
+    y: edgeStart.y + edgeVector.y * (state.tailPosition / 100),
   };
+  const normalCandidates = [
+    normalizeVector({ x: -edge.y, y: edge.x }),
+    normalizeVector({ x: edge.y, y: -edge.x }),
+  ];
+  const toCenterVector = { x: imageCenter.x - anchor.x, y: imageCenter.y - anchor.y };
+  const outwardNormal =
+    dotVectors(normalCandidates[0], toCenterVector) < dotVectors(normalCandidates[1], toCenterVector)
+      ? normalCandidates[0]
+      : normalCandidates[1];
   const tipVector = {
     x: canvasPoint.x - anchor.x,
     y: canvasPoint.y - anchor.y,
