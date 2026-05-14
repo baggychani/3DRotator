@@ -46,11 +46,11 @@
     min-height: auto;
     padding: 0.55rem 0.65rem 0.65rem;
     border-radius: 1.15rem;
-    border-color: rgba(20, 28, 48, 0.14);
+    border: 1px solid var(--line-soft);
     box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.95) inset,
-      0 0.55rem 1.85rem rgba(15, 20, 40, 0.11),
-      0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+      0 1px 0 rgba(255, 255, 255, 0.05) inset,
+      0 1rem 2.5rem rgba(0, 0, 0, 0.38),
+      0 0 0 1px rgba(0, 0, 0, 0.12) inset;
   }
 
   .controls {
@@ -61,6 +61,14 @@
   .panel {
     padding: 1rem;
     border-radius: 1.1rem;
+  }
+
+  .left-rail .panel.intro {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0.35rem 0 0.15rem;
   }
 
   .brand-wordmark {
@@ -255,6 +263,13 @@
     border-color: rgba(15, 22, 40, 0.12);
     background: linear-gradient(180deg, #ffffff, #eef1f7);
     box-shadow: 0 0.85rem 2rem rgba(15, 22, 45, 0.14);
+  }
+
+  .stage-card {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 1rem 2.5rem rgba(15, 22, 45, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.04) inset;
   }
 }
 

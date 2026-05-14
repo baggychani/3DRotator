@@ -128,7 +128,7 @@
   }
 }
 
-/* 미리보기 영역: OS 다크/라이트와 무관하게 항상 라이트 스킴·밝은 크롬(그림자 확인용) */
+/* 미리보기 카드: 패널과 동일한 테마(라이트/다크). 실제 미리보기 배경색은 data-preview-theme + 우측 상단 버튼. */
 .stage-card {
   position: relative;
   display: flex;
@@ -139,15 +139,23 @@
   padding: 1rem;
   overflow: hidden;
   contain: layout paint;
-  color-scheme: light;
-  forced-color-adjust: none;
-  border: 1px solid rgba(20, 28, 48, 0.14);
+  border: 1px solid var(--line-soft);
   border-radius: 1.5rem;
-  background: linear-gradient(180deg, #ffffff 0%, #f3f4f8 100%);
+  background: linear-gradient(168deg, rgba(38, 42, 58, 0.94) 0%, rgba(24, 27, 38, 0.96) 48%, rgba(20, 22, 32, 0.97) 100%);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95) inset,
-    0 0.65rem 2.25rem rgba(15, 20, 40, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 1.25rem 3.5rem rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(0, 0, 0, 0.12) inset;
+}
+
+@media (prefers-color-scheme: light) {
+  .stage-card {
+    background: linear-gradient(168deg, #ffffff 0%, #f6f7fb 48%, #eef1f7 100%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 1rem 2.5rem rgba(15, 22, 45, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+  }
 }
 
 .preview-theme-button {
@@ -260,6 +268,7 @@
   position: relative;
   overflow: hidden;
   border-radius: calc(1.5rem - 3px);
+  background: transparent;
 }
 
 .stage-card__viewport canvas {

@@ -2,6 +2,7 @@ import { projectPoint3d, rotatePoint3d } from "./geometry.js";
 
 const BASE_CANVAS_WIDTH = 1080;
 const FIT_MARGIN = 96;
+const FIT_MARGIN_COMPACT = 132;
 const TAIL_HANDLE_RADIUS = 20;
 const TEXTURE_PADDING = 1;
 const TAIL_OVERLAP = 10;
@@ -198,10 +199,14 @@ function getContentBounds(canvas, scene, state) {
   );
 }
 
+function getFitMarginForCanvas(canvas) {
+  return canvas.width <= 1200 ? FIT_MARGIN_COMPACT : FIT_MARGIN;
+}
+
 function fitSceneToCanvas(canvas, scene, state) {
   const canvasCenter = { x: canvas.width / 2, y: canvas.height / 2 };
   const initialBounds = getContentBounds(canvas, scene, state);
-  const fitMargin = scaleValue(canvas, FIT_MARGIN);
+  const fitMargin = scaleValue(canvas, getFitMarginForCanvas(canvas));
   const fitScale = Math.min(
     1,
     (canvas.width - fitMargin * 2) / initialBounds.width,
