@@ -199,10 +199,6 @@ function getContentBounds(canvas, scene, state) {
 }
 
 function fitSceneToCanvas(canvas, scene, state) {
-  if (!state.fitToCanvas) {
-    return scene;
-  }
-
   const canvasCenter = { x: canvas.width / 2, y: canvas.height / 2 };
   const initialBounds = getContentBounds(canvas, scene, state);
   const fitMargin = scaleValue(canvas, FIT_MARGIN);

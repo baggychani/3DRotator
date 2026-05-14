@@ -1,7 +1,7 @@
 import { bindControlEvents, syncControlsFromState } from "./modules/controls.js";
 import { builtInPresets, initialState } from "./modules/defaults.js";
 import { loadImageFromFile } from "./modules/image-loader.js";
-import { createPlaceholderImage } from "./modules/placeholder.js";
+import { createPlaceholderImage, isPlaceholderImage } from "./modules/placeholder.js";
 import {
   createPresetExportData,
   deleteUserPreset,
@@ -20,11 +20,9 @@ const canvas = document.querySelector("#canvas");
 const stageCard = document.querySelector("#stageCard");
 const previewThemeButton = document.querySelector("#previewThemeButton");
 const imageInput = document.querySelector("#imageInput");
-const imageSelectLabel = document.querySelector("#imageSelectLabel");
 const imageStatus = document.querySelector("#imageStatus");
 const downloadButton = document.querySelector("#downloadButton");
 const resetAllButton = document.querySelector("#resetAllButton");
-const mobileImageButton = document.querySelector("#mobileImageButton");
 const mobileDownloadButton = document.querySelector("#mobileDownloadButton");
 const mobileResetButton = document.querySelector("#mobileResetButton");
 const resetTransformButton = document.querySelector("#resetTransformButton");
@@ -38,6 +36,9 @@ const importPresetsButton = document.querySelector("#importPresetsButton");
 const presetImportInput = document.querySelector("#presetImportInput");
 const presetDialog = document.querySelector("#presetDialog");
 const presetDialogForm = presetDialog.querySelector("form");
+const resetConfirmDialog = document.querySelector("#resetConfirmDialog");
+const cancelResetButton = document.querySelector("#cancelResetButton");
+const confirmResetButton = document.querySelector("#confirmResetButton");
 const presetNameInput = document.querySelector("#presetNameInput");
 const presetNameError = document.querySelector("#presetNameError");
 const cancelPresetSaveButton = document.querySelector("#cancelPresetSaveButton");
@@ -45,14 +46,8 @@ const controls = [...document.querySelectorAll("[data-control]")];
 const mobileTabButtons = [...document.querySelectorAll("[data-mobile-tab]")];
 const mobilePanels = [...document.querySelectorAll("[data-mobile-panel]")];
 const toast = document.querySelector("#toast");
-const transformKeys = [
-  "rotateX",
-  "rotateY",
-  "rotateZ",
-  "perspective",
-  "scale",
-  "fitToCanvas",
-];
+const toastText = toast?.querySelector(".toast__text");
+const transformKeys = ["rotateX", "rotateY", "rotateZ", "perspective", "scale"];
 const shadowKeys = [
   "shadowEnabled",
   "shadowAlpha",
@@ -78,9 +73,17 @@ const previewThemeLabels = {
 };
 const TAIL_HANDLE_HIT_RADIUS = window.matchMedia("(pointer: coarse)").matches ? 34 : 22;
 let isDraggingTailHandle = false;
+let suppressCanvasImagePickerClick = false;
 let pendingRenderId = null;
 let toastTimerId = null;
 let presetDialogReturnFocusElement = null;
+let resetDialogReturnFocusElement = null;
+
+function hapticLight() {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    navigator.vibrate(12);
+  }
+}
 
 function syncMobileDetailsMode() {
   const groups = [...document.querySelectorAll("details.control-group")];
@@ -110,6 +113,15 @@ function syncCanvasResolution() {
   return true;
 }
 
+function syncPreviewAccessibility() {
+  const placeholder = isPlaceholderImage(image);
+  canvas.classList.toggle("is-placeholder-preview", placeholder);
+  canvas.setAttribute(
+    "aria-label",
+    placeholder ? "미리보기 — 탭하면 사진을 선택합니다" : "편집 미리보기",
+  );
+}
+
 function render() {
   pendingRenderId = null;
   syncCanvasResolution();
@@ -117,6 +129,7 @@ function render() {
   previewThemeButton.dataset.previewTheme = state.previewTheme;
   previewThemeButton.title = `미리보기 배경: ${previewThemeLabels[state.previewTheme]}`;
   previewThemeButton.setAttribute("aria-label", previewThemeButton.title);
+  syncPreviewAccessibility();
   renderScene(canvas, image, state);
 }
 
@@ -150,12 +163,25 @@ function normalizeStateValues(source) {
     normalizedState.tailSide = initialState.tailSide;
   }
 
+  delete normalizedState.fitToCanvas;
+
   return normalizedState;
+}
+
+function syncTailColorHexField() {
+  const tailColorHexInput = document.querySelector("#tailColorHex");
+
+  if (!tailColorHexInput) {
+    return;
+  }
+
+  tailColorHexInput.value = String(state.tailColor || "#ffffff").toUpperCase();
 }
 
 function applyState(nextState) {
   Object.assign(state, normalizeStateValues(nextState));
   syncControlsFromState(controls, state);
+  syncTailColorHexField();
   render();
 }
 
@@ -165,6 +191,7 @@ function resetKeys(keys) {
   }
 
   syncControlsFromState(controls, state);
+  syncTailColorHexField();
   render();
 }
 
@@ -173,17 +200,19 @@ function resetAllControls() {
   applyState({ ...initialState, tailEnabled: currentTailEnabled });
 }
 
-function showToast(message) {
-  if (!toast) {
+function showToast(message, options = {}) {
+  if (!toast || !toastText) {
     return;
   }
 
-  toast.textContent = message;
+  const { variant } = options;
+  toast.classList.toggle("toast--success", variant === "success");
+  toastText.textContent = message;
   toast.classList.add("is-visible");
   window.clearTimeout(toastTimerId);
   toastTimerId = window.setTimeout(() => {
-    toast.classList.remove("is-visible");
-  }, 1800);
+    toast.classList.remove("is-visible", "toast--success");
+  }, 2000);
 }
 
 function getCanvasPoint(event) {
@@ -331,9 +360,6 @@ function getFileBaseName(fileName) {
 }
 
 function setLoadedImageStatus(file) {
-  if (imageSelectLabel) {
-    imageSelectLabel.textContent = "사진 변경";
-  }
   if (imageStatus) {
     imageStatus.textContent = file.name;
     imageStatus.title = file.name;
@@ -363,7 +389,8 @@ async function loadSelectedImage() {
     sourceFileBaseName = getFileBaseName(file.name);
     setLoadedImageStatus(file);
     render();
-    showToast("이미지를 불러왔습니다.");
+    hapticLight();
+    showToast("이미지를 불러왔습니다.", { variant: "success" });
   } catch (error) {
     window.alert(error.message);
   }
@@ -375,12 +402,26 @@ function downloadPng() {
   link.download = `${sourceFileBaseName}_3D.png`;
   link.href = exportCanvas.toDataURL("image/png");
   link.click();
-  showToast("PNG 저장을 시작했습니다.");
+  hapticLight();
+  showToast("PNG 저장을 시작했습니다.", { variant: "success" });
 }
 
-function resetAllAndNotify() {
+function performResetAll() {
   resetAllControls();
+  hapticLight();
   showToast("설정을 기본값으로 되돌렸습니다.");
+}
+
+function openResetConfirmDialog() {
+  resetDialogReturnFocusElement = document.activeElement;
+  resetConfirmDialog.hidden = false;
+  cancelResetButton.focus();
+}
+
+function closeResetConfirmDialog() {
+  resetConfirmDialog.hidden = true;
+  resetDialogReturnFocusElement?.focus();
+  resetDialogReturnFocusElement = null;
 }
 
 function showMobilePanel(panelName) {
@@ -418,10 +459,34 @@ function saveCurrentPreset(name) {
   saveUserPreset(name, copyStateValues(state));
   refreshPresetOptions();
   presetSelect.value = presets.at(-1).id;
-  showToast("현재 설정을 프리셋으로 저장했습니다.");
+  showToast("현재 설정을 프리셋으로 저장했습니다.", { variant: "success" });
 }
 
 imageInput.addEventListener("change", loadSelectedImage);
+
+canvas.addEventListener("click", (event) => {
+  if (suppressCanvasImagePickerClick) {
+    suppressCanvasImagePickerClick = false;
+    return;
+  }
+
+  if (!isPlaceholderImage(image)) {
+    return;
+  }
+
+  const handlePoint = getTailHandlePoint(canvas, image, state);
+
+  if (handlePoint) {
+    const canvasPoint = getCanvasPoint(event);
+    const hitRadius = TAIL_HANDLE_HIT_RADIUS * getCanvasScale();
+
+    if (Math.hypot(canvasPoint.x - handlePoint.x, canvasPoint.y - handlePoint.y) <= hitRadius) {
+      return;
+    }
+  }
+
+  imageInput.click();
+});
 
 canvas.addEventListener("pointerdown", (event) => {
   const handlePoint = getTailHandlePoint(canvas, image, state);
@@ -459,11 +524,15 @@ canvas.addEventListener("pointerup", (event) => {
   }
 
   isDraggingTailHandle = false;
+  suppressCanvasImagePickerClick = true;
   canvas.classList.remove("is-dragging-tail");
   canvas.releasePointerCapture(event.pointerId);
 });
 
 canvas.addEventListener("pointercancel", (event) => {
+  if (isDraggingTailHandle) {
+    suppressCanvasImagePickerClick = true;
+  }
   isDraggingTailHandle = false;
   canvas.classList.remove("is-dragging-tail");
 
@@ -473,6 +542,54 @@ canvas.addEventListener("pointercancel", (event) => {
 });
 
 bindControlEvents(controls, state, initialState, scheduleRender);
+
+const tailColorInput = document.querySelector("#tailColor");
+const tailColorHexInput = document.querySelector("#tailColorHex");
+
+function normalizeTailColorHex(raw) {
+  let value = raw.trim();
+
+  if (!value.startsWith("#")) {
+    value = `#${value}`;
+  }
+
+  return /^#[0-9A-Fa-f]{6}$/.test(value) ? value.toLowerCase() : null;
+}
+
+if (tailColorHexInput) {
+  tailColorHexInput.addEventListener("change", () => {
+    const hex = normalizeTailColorHex(tailColorHexInput.value);
+
+    if (hex) {
+      state.tailColor = hex;
+
+      if (tailColorInput) {
+        tailColorInput.value = hex;
+      }
+
+      scheduleRender();
+    } else {
+      syncTailColorHexField();
+    }
+  });
+
+  tailColorHexInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      tailColorHexInput.blur();
+    }
+  });
+}
+
+if (tailColorInput) {
+  tailColorInput.addEventListener("input", () => {
+    syncTailColorHexField();
+  });
+
+  tailColorInput.addEventListener("dblclick", () => {
+    syncTailColorHexField();
+  });
+}
 
 for (const summary of document.querySelectorAll("details.control-group > summary")) {
   summary.addEventListener("click", (event) => {
@@ -505,6 +622,7 @@ presetDialogForm.addEventListener("submit", (event) => {
   }
 
   saveCurrentPreset(name);
+  hapticLight();
   closePresetDialog();
 });
 
@@ -516,8 +634,32 @@ presetDialog.addEventListener("click", (event) => {
   }
 });
 
+resetConfirmDialog.addEventListener("click", (event) => {
+  if (event.target === resetConfirmDialog) {
+    closeResetConfirmDialog();
+  }
+});
+
+cancelResetButton.addEventListener("click", () => {
+  closeResetConfirmDialog();
+});
+
+confirmResetButton.addEventListener("click", () => {
+  closeResetConfirmDialog();
+  performResetAll();
+});
+
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !presetDialog.hidden) {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  if (!resetConfirmDialog.hidden) {
+    closeResetConfirmDialog();
+    return;
+  }
+
+  if (!presetDialog.hidden) {
     closePresetDialog();
   }
 });
@@ -570,10 +712,9 @@ downloadButton.addEventListener("click", () => {
   downloadPng();
 });
 
-mobileImageButton.addEventListener("click", () => imageInput.click());
 mobileDownloadButton.addEventListener("click", downloadPng);
-mobileResetButton.addEventListener("click", resetAllAndNotify);
-resetAllButton.addEventListener("click", resetAllAndNotify);
+mobileResetButton.addEventListener("click", openResetConfirmDialog);
+resetAllButton.addEventListener("click", openResetConfirmDialog);
 resetTransformButton.addEventListener("click", () => resetKeys(transformKeys));
 resetShadowButton.addEventListener("click", () => resetKeys(shadowKeys));
 resetTailButton.addEventListener("click", () => resetKeys(tailKeys));
@@ -591,5 +732,6 @@ window.addEventListener("resize", () => {
 refreshPresetOptions("built-in:0");
 showMobilePanel("transform");
 syncControlsFromState(controls, state);
+syncTailColorHexField();
 syncMobileDetailsMode();
 render();

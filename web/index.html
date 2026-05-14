@@ -3,18 +3,24 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>3D Rotator</title>
+    <meta name="color-scheme" content="dark light" />
+    <title>GichanImage</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="app">
       <aside class="left-rail">
         <section class="panel intro">
-          <h1>이미지를 3D로 회전하세요.</h1>
-          <label class="upload">
-            <input id="imageInput" type="file" accept="image/*" />
-            <span id="imageSelectLabel">이미지 선택</span>
+          <label class="brand-wordmark" for="imageInput" title="이미지 업로드" aria-label="GichanImage, 이미지 업로드">
+            <span class="brand-wordmark__gichan">Gichan</span><span class="brand-wordmark__image">Image</span>
           </label>
+          <input id="imageInput" class="visually-hidden" type="file" accept="image/*" />
           <p id="imageStatus" class="image-status" aria-live="polite"></p>
           <div class="side-actions">
             <button id="downloadButton" type="button">PNG 다운로드</button>
@@ -41,7 +47,9 @@
           <span></span>
           <span></span>
         </button>
-        <canvas id="canvas" width="2160" height="3840" aria-label="미리보기"></canvas>
+        <div class="stage-card__viewport">
+          <canvas id="canvas" width="2160" height="3840" aria-label="미리보기"></canvas>
+        </div>
       </section>
 
       <section class="panel controls" aria-label="편집 옵션">
@@ -69,26 +77,25 @@
           <summary>3D 회전</summary>
           <button id="resetTransformButton" type="button" class="secondary slim section-reset">3D 회전 기본값</button>
           <label>
-            <span class="axis-label">X축 회전 <svg class="axis-icon axis-icon-3d" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.6 7.3 10 4.8l4.8 2.7-4.4 2.6zM5.6 7.3V12l4.4 2.5V10zM10 14.5l4.8-2.7V7.5"/><path d="M3.9 9.8a6.6 6.6 0 0 1 11.3-4"/><path d="m14.4 4.4.2 2.5-2.4-.8"/></svg></span>
+            <span class="axis-label">X축 회전</span>
             <output data-output-for="rotateX">0°</output>
             <input data-control="rotateX" type="range" min="-80" max="80" step="1" value="0" />
             <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
           </label>
           <label>
-            <span class="axis-label">Y축 회전 <svg class="axis-icon axis-icon-3d" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.6 7.3 10 4.8l4.8 2.7-4.4 2.6zM5.6 7.3V12l4.4 2.5V10zM10 14.5l4.8-2.7V7.5"/><path d="M3.9 9.8a6.6 6.6 0 0 1 11.3-4"/><path d="m14.4 4.4.2 2.5-2.4-.8"/></svg></span>
+            <span class="axis-label">Y축 회전</span>
             <output data-output-for="rotateY">0°</output>
             <input data-control="rotateY" type="range" min="-80" max="80" step="1" value="0" />
             <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
           </label>
           <label>
-            <span class="axis-label">Z축 회전 <svg class="axis-icon axis-icon-3d" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.6 7.3 10 4.8l4.8 2.7-4.4 2.6zM5.6 7.3V12l4.4 2.5V10zM10 14.5l4.8-2.7V7.5"/><path d="M3.9 9.8a6.6 6.6 0 0 1 11.3-4"/><path d="m14.4 4.4.2 2.5-2.4-.8"/></svg></span>
+            <span class="axis-label">Z축 회전</span>
             <output data-output-for="rotateZ">0°</output>
             <input data-control="rotateZ" type="range" min="-80" max="80" step="1" value="0" />
             <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
           </label>
           <label>원근감 <input data-control="perspective" type="range" min="900" max="3200" value="1400" /></label>
           <label>크기 <input data-control="scale" type="range" min="35" max="95" value="68" /></label>
-          <label class="switch-field"><input data-control="fitToCanvas" type="checkbox" checked /><span class="switch"></span><span>잘림 방지 자동 맞춤</span></label>
         </details>
 
         <details class="control-group" data-mobile-panel="shadow" data-mobile-active="false">
@@ -105,6 +112,10 @@
         <details class="control-group" data-mobile-panel="tail" data-mobile-active="false" open>
           <summary>말풍선 꼬리</summary>
           <button id="resetTailButton" type="button" class="secondary slim section-reset">말풍선 꼬리 기본값</button>
+          <label class="switch-field tail-enable-first"
+            ><input data-control="tailEnabled" type="checkbox" /><span class="switch"></span
+            ><span>말풍선 꼬리 표시</span></label
+          >
           <fieldset class="tail-side-picker">
             <legend>꼬리 위치</legend>
             <div class="tail-side-diagram" role="presentation">
@@ -115,7 +126,7 @@
                 <span class="tail-rim__edge tail-rim__edge--left"></span>
               </div>
               <label class="tail-hit tail-hit--top">
-                <input data-control="tailSide" type="radio" name="tailSide" value="top" checked />
+                <input data-control="tailSide" type="radio" name="tailSide" value="top" />
                 <span class="tail-hit__label">위</span>
                 <span class="tail-hit__knob" aria-hidden="true"></span>
               </label>
@@ -125,7 +136,7 @@
                 <span class="tail-hit__label">오른쪽</span>
               </label>
               <label class="tail-hit tail-hit--bottom">
-                <input data-control="tailSide" type="radio" name="tailSide" value="bottom" />
+                <input data-control="tailSide" type="radio" name="tailSide" value="bottom" checked />
                 <span class="tail-hit__knob" aria-hidden="true"></span>
                 <span class="tail-hit__label">아래</span>
               </label>
@@ -136,18 +147,31 @@
               </label>
             </div>
           </fieldset>
-          <label class="switch-field"><input data-control="tailEnabled" type="checkbox" /><span class="switch"></span><span>말풍선 꼬리 표시</span></label>
-          <label>위치 <input data-control="tailPosition" type="range" min="10" max="90" value="72" /></label>
+          <label>위치 <input data-control="tailPosition" type="range" min="10" max="90" value="58" /></label>
           <label>너비 <input data-control="tailWidth" type="range" min="20" max="220" value="64" /></label>
           <label>길이 <input data-control="tailLength" type="range" min="20" max="260" value="118" /></label>
           <label>방향 <input data-control="tailLean" type="range" min="-180" max="180" value="86" /></label>
-          <label>채우기 <input data-control="tailColor" type="color" value="#ffffff" /></label>
+          <label class="tail-color-field">
+            채우기
+            <span class="tail-color-row">
+              <input id="tailColor" data-control="tailColor" type="color" value="#ffffff" />
+              <input
+                id="tailColorHex"
+                class="tail-color-hex"
+                type="text"
+                maxlength="7"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="채우기 색 HEX"
+              />
+            </span>
+          </label>
         </details>
       </section>
     </main>
 
     <div id="presetDialog" class="dialog-backdrop" role="presentation" hidden>
-      <form class="preset-dialog" role="dialog" aria-modal="true" aria-labelledby="presetDialogTitle">
+      <form class="preset-dialog modal-panel" role="dialog" aria-modal="true" aria-labelledby="presetDialogTitle">
         <h2 id="presetDialogTitle">현재 설정 저장</h2>
         <label>
           프리셋 이름
@@ -161,12 +185,34 @@
       </form>
     </div>
 
+    <div id="resetConfirmDialog" class="dialog-backdrop" role="presentation" hidden>
+      <div
+        class="confirm-dialog modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="resetConfirmTitle"
+        aria-describedby="resetConfirmHint"
+      >
+        <h2 id="resetConfirmTitle">설정을 초기화할까요?</h2>
+        <p id="resetConfirmHint" class="confirm-dialog__hint">
+          3D 회전, 그림자, 말풍선 꼬리 모양이 기본값으로 돌아갑니다. 말풍선 표시 ON/OFF는 그대로 유지됩니다. 올려둔 사진은
+          바뀌지 않습니다.
+        </p>
+        <div class="dialog-actions">
+          <button id="cancelResetButton" type="button" class="secondary">취소</button>
+          <button id="confirmResetButton" type="button" class="danger">초기화</button>
+        </div>
+      </div>
+    </div>
+
     <div class="mobile-action-bar" aria-label="빠른 작업">
-      <button id="mobileImageButton" type="button" class="secondary">사진 선택</button>
       <button id="mobileDownloadButton" type="button">PNG 저장</button>
       <button id="mobileResetButton" type="button" class="secondary">설정 초기화</button>
     </div>
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite">
+      <span class="toast__icon" aria-hidden="true"></span>
+      <span class="toast__text"></span>
+    </div>
 
     <script src="./app.js" type="module"></script>
   </body>
