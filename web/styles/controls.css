@@ -601,3 +601,89 @@ select:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(148, 168, 255, 0.18);
 }
+
+@media (prefers-color-scheme: light) {
+  .mobile-control-tabs {
+    border-color: rgba(15, 22, 40, 0.12);
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(240, 242, 248, 0.95));
+  }
+
+  .mobile-control-tabs button[aria-pressed="true"] {
+    border-color: rgba(106, 126, 232, 0.42);
+    background: linear-gradient(180deg, #9cafef 0%, #758cf0 100%);
+    color: #11172a;
+  }
+
+  .tail-rim {
+    border-color: #c4cbe0;
+    background:
+      linear-gradient(165deg, rgba(255, 255, 255, 0.8) 0%, transparent 44%),
+      rgba(238, 241, 248, 0.9);
+    box-shadow:
+      0 0 18px rgba(106, 126, 232, 0.11),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .tail-hit__label {
+    text-shadow: none;
+  }
+
+  .tail-hit__knob {
+    border-color: #b8c0d8;
+    background: radial-gradient(circle at 32% 28%, #ffffff, #e9edf7);
+  }
+
+  .tail-hit:has(input:checked) .tail-hit__knob {
+    background: #7188ee;
+    box-shadow:
+      0 0 12px rgba(106, 126, 232, 0.42),
+      0 0 24px rgba(106, 126, 232, 0.18);
+  }
+
+  .tail-hit:has(input:checked) .tail-hit__label {
+    color: var(--text);
+    text-shadow: none;
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    background: linear-gradient(90deg, #d9deeb 0%, #c7cee0 100%);
+    box-shadow: 0 1px 2px rgba(15, 22, 45, 0.12) inset;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    border-color: #20263a;
+    box-shadow: 0 0.15rem 0.45rem rgba(92, 113, 216, 0.28);
+  }
+
+  input[type="range"]::-moz-range-track {
+    background: linear-gradient(90deg, #d9deeb 0%, #c7cee0 100%);
+    box-shadow: 0 1px 2px rgba(15, 22, 45, 0.12) inset;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    border-color: #20263a;
+    box-shadow: 0 0.15rem 0.45rem rgba(92, 113, 216, 0.28);
+  }
+
+  .switch {
+    border-color: rgba(15, 22, 40, 0.16);
+    background: #d7ddea;
+  }
+
+  .switch::after {
+    background: #ffffff;
+    box-shadow: 0 0.1rem 0.35rem rgba(15, 22, 45, 0.18);
+  }
+
+  select,
+  .tail-color-hex {
+    background: linear-gradient(180deg, #ffffff, #eef1f7);
+    border-color: rgba(15, 22, 40, 0.14);
+    color: var(--text);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  }
+
+  input[type="color"] {
+    border-color: rgba(15, 22, 40, 0.14);
+  }
+}

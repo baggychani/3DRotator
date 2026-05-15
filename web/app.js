@@ -24,6 +24,7 @@ const imageStatus = document.querySelector("#imageStatus");
 const downloadButton = document.querySelector("#downloadButton");
 const resetAllButton = document.querySelector("#resetAllButton");
 const mobileDownloadButton = document.querySelector("#mobileDownloadButton");
+const mobileResetImageButton = document.querySelector("#mobileResetImageButton");
 const mobileResetButton = document.querySelector("#mobileResetButton");
 const resetTransformButton = document.querySelector("#resetTransformButton");
 const resetShadowButton = document.querySelector("#resetShadowButton");
@@ -45,6 +46,8 @@ const cancelPresetSaveButton = document.querySelector("#cancelPresetSaveButton")
 const controls = [...document.querySelectorAll("[data-control]")];
 const mobileTabButtons = [...document.querySelectorAll("[data-mobile-tab]")];
 const mobilePanels = [...document.querySelectorAll("[data-mobile-panel]")];
+const mobileControlTabs = document.querySelector(".mobile-control-tabs");
+const mobileTabPill = mobileControlTabs?.querySelector(".mobile-control-tabs__pill");
 const toast = document.querySelector("#toast");
 const toastText = toast?.querySelector(".toast__text");
 const transformKeys = ["rotateX", "rotateY", "rotateZ", "perspective", "scale"];
@@ -65,6 +68,7 @@ const canvasProfiles = {
 };
 const mobileRenderQuery = window.matchMedia("(max-width: 720px), (pointer: coarse)");
 const mobileUiQuery = window.matchMedia("(max-width: 720px), (pointer: coarse)");
+const viewportUndoButton = document.querySelector("#undoButton");
 const previewThemes = ["light", "checker", "dark"];
 const previewThemeLabels = {
   light: "밝은 배경",
@@ -99,6 +103,24 @@ function syncMobileDetailsMode() {
   }
 }
 
+function syncMobileTabPill() {
+  if (!mobileUiQuery.matches || !mobileControlTabs || !mobileTabPill) {
+    return;
+  }
+
+  const activeButton = mobileControlTabs.querySelector('button[aria-pressed="true"]');
+
+  if (!activeButton) {
+    return;
+  }
+
+  const navRect = mobileControlTabs.getBoundingClientRect();
+  const tabRect = activeButton.getBoundingClientRect();
+
+  mobileTabPill.style.width = `${tabRect.width}px`;
+  mobileTabPill.style.transform = `translateX(${tabRect.left - navRect.left}px)`;
+}
+
 function syncCanvasResolution() {
   const nextProfile = mobileRenderQuery.matches ? canvasProfiles.mobile : canvasProfiles.desktop;
 
@@ -116,6 +138,7 @@ function syncCanvasResolution() {
 function syncPreviewAccessibility() {
   const placeholder = isPlaceholderImage(image);
   canvas.classList.toggle("is-placeholder-preview", placeholder);
+  mobileResetImageButton.disabled = placeholder;
   canvas.setAttribute(
     "aria-label",
     placeholder ? "미리보기 — 탭하면 사진을 선택합니다" : "편집 미리보기",
@@ -126,9 +149,11 @@ function render() {
   pendingRenderId = null;
   syncCanvasResolution();
   stageCard.dataset.previewTheme = state.previewTheme;
-  previewThemeButton.dataset.previewTheme = state.previewTheme;
-  previewThemeButton.title = `미리보기 배경: ${previewThemeLabels[state.previewTheme]}`;
-  previewThemeButton.setAttribute("aria-label", previewThemeButton.title);
+  if (previewThemeButton) {
+    previewThemeButton.dataset.previewTheme = state.previewTheme;
+    previewThemeButton.title = `미리보기 배경: ${previewThemeLabels[state.previewTheme]}`;
+    previewThemeButton.setAttribute("aria-label", previewThemeButton.title);
+  }
   syncPreviewAccessibility();
   renderScene(canvas, image, state);
 }
@@ -185,7 +210,51 @@ function applyState(nextState) {
   render();
 }
 
+const UNDO_DEPTH = 45;
+const undoStack = [];
+let isApplyingUndo = false;
+
+function updateUndoButton() {
+  if (viewportUndoButton) {
+    viewportUndoButton.disabled = undoStack.length === 0;
+  }
+}
+
+function pushUndoSnapshot() {
+  if (isApplyingUndo) {
+    return;
+  }
+
+  const snapshot = copyStateValues(state);
+  const last = undoStack[undoStack.length - 1];
+
+  if (last && JSON.stringify(last) === JSON.stringify(snapshot)) {
+    return;
+  }
+
+  undoStack.push(snapshot);
+
+  if (undoStack.length > UNDO_DEPTH) {
+    undoStack.shift();
+  }
+
+  updateUndoButton();
+}
+
+function performUndo() {
+  if (undoStack.length === 0) {
+    return;
+  }
+
+  const snapshot = undoStack.pop();
+  isApplyingUndo = true;
+  applyState(snapshot);
+  isApplyingUndo = false;
+  updateUndoButton();
+}
+
 function resetKeys(keys) {
+  pushUndoSnapshot();
   for (const key of keys) {
     state[key] = initialState[key];
   }
@@ -366,6 +435,21 @@ function setLoadedImageStatus(file) {
   }
 }
 
+function resetImage() {
+  image = createPlaceholderImage();
+  sourceFileBaseName = "3d-rotated-image";
+  imageInput.value = "";
+
+  if (imageStatus) {
+    imageStatus.textContent = "";
+    imageStatus.title = "";
+  }
+
+  render();
+  hapticLight();
+  showToast("이미지를 초기화했습니다.");
+}
+
 function downloadJsonFile(fileName, data) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -399,7 +483,7 @@ async function loadSelectedImage() {
 function downloadPng() {
   const exportCanvas = createSmartExportCanvas(createHighResolutionExportSource());
   const link = document.createElement("a");
-  link.download = `${sourceFileBaseName}_3D.png`;
+  link.download = `${sourceFileBaseName}_gichanimg.png`;
   link.href = exportCanvas.toDataURL("image/png");
   link.click();
   hapticLight();
@@ -407,6 +491,7 @@ function downloadPng() {
 }
 
 function performResetAll() {
+  pushUndoSnapshot();
   resetAllControls();
   hapticLight();
   showToast("설정을 기본값으로 되돌렸습니다.");
@@ -437,6 +522,10 @@ function showMobilePanel(panelName) {
       panel.open = true;
     }
   }
+
+  window.requestAnimationFrame(() => {
+    syncMobileTabPill();
+  });
 }
 
 function closePresetDialog() {
@@ -506,6 +595,7 @@ canvas.addEventListener("pointerdown", (event) => {
   event.preventDefault();
   canvas.classList.add("is-dragging-tail");
   canvas.setPointerCapture(event.pointerId);
+  pushUndoSnapshot();
   applyTailDragValues(canvasPoint);
 });
 
@@ -541,7 +631,47 @@ canvas.addEventListener("pointercancel", (event) => {
   }
 });
 
-bindControlEvents(controls, state, initialState, scheduleRender);
+bindControlEvents(controls, state, initialState, scheduleRender, pushUndoSnapshot);
+
+const controlsPanel = document.querySelector(".controls");
+
+if (controlsPanel) {
+  controlsPanel.addEventListener(
+    "pointerdown",
+    (event) => {
+      const fromLabel = event.target.closest("label")?.querySelector("[data-control]");
+
+      if (!event.target.closest("[data-control]") && !fromLabel) {
+        return;
+      }
+
+      pushUndoSnapshot();
+    },
+    true,
+  );
+}
+
+for (const control of controls) {
+  if (control.type !== "range") {
+    continue;
+  }
+
+  control.addEventListener("keydown", (event) => {
+    if (event.repeat) {
+      return;
+    }
+
+    if (
+      !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(
+        event.key,
+      )
+    ) {
+      return;
+    }
+
+    pushUndoSnapshot();
+  });
+}
 
 const tailColorInput = document.querySelector("#tailColor");
 const tailColorHexInput = document.querySelector("#tailColorHex");
@@ -561,6 +691,7 @@ if (tailColorHexInput) {
     const hex = normalizeTailColorHex(tailColorHexInput.value);
 
     if (hex) {
+      pushUndoSnapshot();
       state.tailColor = hex;
 
       if (tailColorInput) {
@@ -605,6 +736,7 @@ presetSelect.addEventListener("change", () => {
   const selectedPreset = presets.find((preset) => preset.id === presetSelect.value);
 
   if (selectedPreset) {
+    pushUndoSnapshot();
     applyState(copyStateValues(selectedPreset.values));
   }
 });
@@ -650,6 +782,25 @@ confirmResetButton.addEventListener("click", () => {
 });
 
 window.addEventListener("keydown", (event) => {
+  const typingTarget = event.target;
+  const isTypingInField =
+    typingTarget &&
+    (typingTarget.tagName === "TEXTAREA" ||
+      (typingTarget.tagName === "INPUT" &&
+        !["checkbox", "radio", "range", "color", "button", "submit", "file"].includes(
+          typingTarget.type,
+        )));
+
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
+    if (isTypingInField) {
+      return;
+    }
+
+    event.preventDefault();
+    performUndo();
+    return;
+  }
+
   if (event.key !== "Escape") {
     return;
   }
@@ -702,17 +853,31 @@ presetImportInput.addEventListener("change", async () => {
   }
 });
 
-previewThemeButton.addEventListener("click", () => {
-  const currentIndex = previewThemes.indexOf(state.previewTheme);
-  state.previewTheme = previewThemes[(currentIndex + 1) % previewThemes.length];
-  render();
-});
+if (previewThemeButton) {
+  previewThemeButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    pushUndoSnapshot();
+    const currentIndex = previewThemes.indexOf(state.previewTheme);
+    state.previewTheme = previewThemes[(currentIndex + 1) % previewThemes.length];
+    render();
+    hapticLight();
+  });
+}
+
+if (viewportUndoButton) {
+  viewportUndoButton.addEventListener("click", () => {
+    performUndo();
+    hapticLight();
+  });
+}
 
 downloadButton.addEventListener("click", () => {
   downloadPng();
 });
 
 mobileDownloadButton.addEventListener("click", downloadPng);
+mobileResetImageButton.addEventListener("click", resetImage);
 mobileResetButton.addEventListener("click", openResetConfirmDialog);
 resetAllButton.addEventListener("click", openResetConfirmDialog);
 resetTransformButton.addEventListener("click", () => resetKeys(transformKeys));
@@ -722,8 +887,14 @@ for (const button of mobileTabButtons) {
   button.addEventListener("click", () => showMobilePanel(button.dataset.mobileTab));
 }
 mobileRenderQuery.addEventListener("change", render);
-mobileUiQuery.addEventListener("change", syncMobileDetailsMode);
+mobileUiQuery.addEventListener("change", () => {
+  syncMobileDetailsMode();
+  window.requestAnimationFrame(() => {
+    syncMobileTabPill();
+  });
+});
 window.addEventListener("resize", () => {
+  syncMobileTabPill();
   if (syncCanvasResolution()) {
     render();
   }
@@ -735,3 +906,7 @@ syncControlsFromState(controls, state);
 syncTailColorHexField();
 syncMobileDetailsMode();
 render();
+updateUndoButton();
+window.requestAnimationFrame(() => {
+  window.requestAnimationFrame(syncMobileTabPill);
+});

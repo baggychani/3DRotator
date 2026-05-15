@@ -159,7 +159,7 @@ export function syncControlsFromState(controls, state) {
   }
 }
 
-export function bindControlEvents(controls, state, initialState, onChange) {
+export function bindControlEvents(controls, state, initialState, onChange, beforeHistoryRecord = () => {}) {
   for (const control of controls) {
     bindTouchRangeDrag(control, state, onChange);
     control.addEventListener("input", () => {
@@ -167,8 +167,9 @@ export function bindControlEvents(controls, state, initialState, onChange) {
       syncOutputForControl(control);
       onChange();
     });
-    control.addEventListener("dblclick", () =>
-      resetControlToDefault(control, state, initialState, onChange),
-    );
+    control.addEventListener("dblclick", () => {
+      beforeHistoryRecord();
+      resetControlToDefault(control, state, initialState, onChange);
+    });
   }
 }

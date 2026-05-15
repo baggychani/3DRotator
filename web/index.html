@@ -36,17 +36,41 @@
       </aside>
 
       <section id="stageCard" class="stage-card" data-preview-theme="light">
-        <button
-          id="previewThemeButton"
-          class="preview-theme-button"
-          type="button"
-          aria-label="미리보기 배경 바꾸기"
-          title="미리보기 배경 바꾸기"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
+        <div class="stage-card__bar">
+          <button
+            id="undoButton"
+            class="stage-card__bar-btn"
+            type="button"
+            aria-label="실행 취소"
+            title="실행 취소"
+            disabled
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M9 14L4 9L9 4" />
+              <path d="M4 9H15C17.7614 9 20 11.2386 20 14C20 16.7614 17.7614 19 15 19H11" />
+            </svg>
+          </button>
+          <button
+            id="previewThemeButton"
+            class="preview-theme-button"
+            type="button"
+            aria-label="미리보기 배경 바꾸기"
+            title="미리보기 배경 바꾸기"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
         <div class="stage-card__viewport">
           <canvas id="canvas" width="2160" height="3840" aria-label="미리보기"></canvas>
         </div>
@@ -55,6 +79,7 @@
       <section class="panel controls" aria-label="편집 옵션">
         <h2>프리셋</h2>
         <nav class="mobile-control-tabs" aria-label="편집 섹션">
+          <span class="mobile-control-tabs__pill" aria-hidden="true"></span>
           <button type="button" data-mobile-tab="presets" aria-pressed="false">프리셋</button>
           <button type="button" data-mobile-tab="transform" aria-pressed="true">회전</button>
           <button type="button" data-mobile-tab="shadow" aria-pressed="false">그림자</button>
@@ -94,8 +119,8 @@
             <input data-control="rotateZ" type="range" min="-80" max="80" step="1" value="0" />
             <span class="tick-labels" aria-hidden="true"><span>-80</span><span>-60</span><span>-30</span><span>0</span><span>30</span><span>60</span><span>80</span></span>
           </label>
-          <label>원근감 <input data-control="perspective" type="range" min="900" max="3200" value="1400" /></label>
-          <label>크기 <input data-control="scale" type="range" min="35" max="95" value="56" /></label>
+          <label>원근감 <input data-control="perspective" type="range" min="900" max="3200" value="1480" /></label>
+          <label>크기 <input data-control="scale" type="range" min="35" max="95" value="58" /></label>
         </details>
 
         <details class="control-group" data-mobile-panel="shadow" data-mobile-active="false">
@@ -207,6 +232,7 @@
 
     <div class="mobile-action-bar" aria-label="빠른 작업">
       <button id="mobileDownloadButton" type="button">PNG 저장</button>
+      <button id="mobileResetImageButton" type="button" class="secondary">이미지 초기화</button>
       <button id="mobileResetButton" type="button" class="secondary">설정 초기화</button>
     </div>
     <div id="toast" class="toast" role="status" aria-live="polite">

@@ -77,6 +77,12 @@ button.secondary:focus-visible {
     0 0 0 3px rgba(148, 168, 255, 0.22);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.55);
+  opacity: 0.55;
+}
+
 button.danger {
   border: 0;
   background: linear-gradient(175deg, var(--danger-hi) 0%, var(--danger) 48%, #c94d62 100%);
@@ -158,6 +164,34 @@ button.slim {
 }
 
 @media (prefers-color-scheme: light) {
+  .upload,
+  button {
+    color: #11172a;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.75) inset,
+      0 0.45rem 1.1rem rgba(92, 113, 216, 0.2);
+  }
+
+  button.secondary {
+    border-color: rgba(15, 22, 40, 0.12);
+    background: linear-gradient(180deg, #ffffff 0%, #eef1f8 100%);
+    color: #242b3d;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 0.35rem 0.8rem rgba(15, 22, 45, 0.08);
+  }
+
+  button.secondary:focus-visible {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 0.35rem 0.8rem rgba(15, 22, 45, 0.08),
+      0 0 0 3px rgba(106, 126, 232, 0.2);
+  }
+
+  button.danger {
+    color: #300c14;
+  }
+
   .modal-panel {
     background: linear-gradient(168deg, #ffffff 0%, #f6f7fb 50%, #eef0f7 100%);
     border-color: rgba(15, 22, 40, 0.1);
@@ -165,6 +199,13 @@ button.slim {
       0 1px 0 rgba(255, 255, 255, 0.95) inset,
       0 1.25rem 3rem rgba(15, 22, 45, 0.12),
       0 0 80px rgba(130, 150, 220, 0.08);
+  }
+
+  .preset-dialog input[type="text"] {
+    background: #ffffff;
+    border-color: rgba(15, 22, 40, 0.14);
+    color: var(--text);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
   }
 
   .dialog-error {
