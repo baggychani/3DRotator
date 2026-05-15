@@ -17,6 +17,7 @@ export const initialState = {
   tailLength: 118,
   tailLean: 86,
   tailColor: "#ffffff",
+  tailAutoColor: false,
   previewTheme: "light",
 };
 

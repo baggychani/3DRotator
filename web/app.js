@@ -9,7 +9,7 @@ import {
   importUserPresets,
   saveUserPreset,
 } from "./modules/presets.js";
-import { getTailDragValues, getTailHandlePoint, renderScene } from "./modules/renderer.js";
+import { getTailAttachmentInfo, getTailDragValues, getTailHandlePoint, renderScene } from "./modules/renderer.js";
 
 const state = { ...initialState };
 let image = createPlaceholderImage();
@@ -40,6 +40,9 @@ const presetDialogForm = presetDialog.querySelector("form");
 const resetConfirmDialog = document.querySelector("#resetConfirmDialog");
 const cancelResetButton = document.querySelector("#cancelResetButton");
 const confirmResetButton = document.querySelector("#confirmResetButton");
+const imageResetConfirmDialog = document.querySelector("#imageResetConfirmDialog");
+const cancelImageResetButton = document.querySelector("#cancelImageResetButton");
+const confirmImageResetButton = document.querySelector("#confirmImageResetButton");
 const presetNameInput = document.querySelector("#presetNameInput");
 const presetNameError = document.querySelector("#presetNameError");
 const cancelPresetSaveButton = document.querySelector("#cancelPresetSaveButton");
@@ -50,6 +53,7 @@ const mobileControlTabs = document.querySelector(".mobile-control-tabs");
 const mobileTabPill = mobileControlTabs?.querySelector(".mobile-control-tabs__pill");
 const toast = document.querySelector("#toast");
 const toastText = toast?.querySelector(".toast__text");
+const tailAutoColorToggle = document.querySelector("#tailAutoColor");
 const transformKeys = ["rotateX", "rotateY", "rotateZ", "perspective", "scale"];
 const shadowKeys = [
   "shadowEnabled",
@@ -59,9 +63,14 @@ const shadowKeys = [
   "shadowY",
   "shadowSkew",
 ];
-const tailKeys = ["tailSide", "tailPosition", "tailWidth", "tailLength", "tailLean", "tailColor"];
+const tailKeys = ["tailSide", "tailPosition", "tailWidth", "tailLength", "tailLean", "tailColor", "tailAutoColor"];
 const EXPORT_ALPHA_THRESHOLD = 4;
 const EXPORT_PADDING = 96;
+const BASE_CANVAS_WIDTH = 1080;
+const AUTO_TAIL_INWARD_STEPS = [8, 12, 16, 20];
+const AUTO_TAIL_LATERAL_STEPS = [-8, -4, 0, 4, 8];
+const AUTO_TAIL_ALPHA_MIN = 24;
+const AUTO_TAIL_BIN_SIZE = 20;
 const canvasProfiles = {
   desktop: { width: 2160, height: 3840 },
   mobile: { width: 1080, height: 1920 },
@@ -82,6 +91,8 @@ let pendingRenderId = null;
 let toastTimerId = null;
 let presetDialogReturnFocusElement = null;
 let resetDialogReturnFocusElement = null;
+let imageResetDialogReturnFocusElement = null;
+let isAutoTailColorApplying = false;
 
 function hapticLight() {
   if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
@@ -156,6 +167,8 @@ function render() {
   }
   syncPreviewAccessibility();
   renderScene(canvas, image, state);
+  syncTailColorInputLock();
+  syncTailAutoColorIfNeeded();
 }
 
 function scheduleRender() {
@@ -188,6 +201,10 @@ function normalizeStateValues(source) {
     normalizedState.tailSide = initialState.tailSide;
   }
 
+  if (typeof normalizedState.tailAutoColor !== "boolean") {
+    normalizedState.tailAutoColor = initialState.tailAutoColor;
+  }
+
   delete normalizedState.fitToCanvas;
 
   return normalizedState;
@@ -203,10 +220,151 @@ function syncTailColorHexField() {
   tailColorHexInput.value = String(state.tailColor || "#ffffff").toUpperCase();
 }
 
+function syncTailColorInputLock() {
+  const shouldLock = Boolean(state.tailAutoColor);
+
+  if (tailColorInput) {
+    tailColorInput.disabled = shouldLock;
+  }
+
+  if (tailColorHexInput) {
+    tailColorHexInput.disabled = shouldLock;
+  }
+}
+
+function quantizeColor(value, binSize = AUTO_TAIL_BIN_SIZE) {
+  return Math.max(0, Math.min(255, Math.round(value / binSize) * binSize));
+}
+
+function colorToHex({ r, g, b }) {
+  const clamp = (value) => Math.max(0, Math.min(255, Math.round(value)));
+  const toHex = (value) => clamp(value).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function detectTailAutoColor() {
+  if (!state.tailAutoColor || !state.tailEnabled || isPlaceholderImage(image)) {
+    return null;
+  }
+
+  const attachmentInfo = getTailAttachmentInfo(canvas, image, state);
+
+  if (!attachmentInfo) {
+    return null;
+  }
+
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    return null;
+  }
+
+  const renderScale = canvas.width / BASE_CANVAS_WIDTH;
+  const tangent = {
+    x: -attachmentInfo.inwardNormal.y,
+    y: attachmentInfo.inwardNormal.x,
+  };
+  const bins = new Map();
+  let weightedR = 0;
+  let weightedG = 0;
+  let weightedB = 0;
+  let totalWeight = 0;
+
+  for (const inwardStep of AUTO_TAIL_INWARD_STEPS) {
+    for (const lateralStep of AUTO_TAIL_LATERAL_STEPS) {
+      const samplePoint = {
+        x:
+          attachmentInfo.anchor.x +
+          attachmentInfo.inwardNormal.x * inwardStep * renderScale +
+          tangent.x * lateralStep * renderScale,
+        y:
+          attachmentInfo.anchor.y +
+          attachmentInfo.inwardNormal.y * inwardStep * renderScale +
+          tangent.y * lateralStep * renderScale,
+      };
+      const sampleX = Math.round(samplePoint.x);
+      const sampleY = Math.round(samplePoint.y);
+
+      if (sampleX < 0 || sampleY < 0 || sampleX >= canvas.width || sampleY >= canvas.height) {
+        continue;
+      }
+
+      const pixel = context.getImageData(sampleX, sampleY, 1, 1).data;
+      const alpha = pixel[3];
+
+      if (alpha < AUTO_TAIL_ALPHA_MIN) {
+        continue;
+      }
+
+      const normalizedInward = inwardStep / AUTO_TAIL_INWARD_STEPS[AUTO_TAIL_INWARD_STEPS.length - 1];
+      const normalizedCenter = 1 - Math.abs(lateralStep) / Math.max(1, Math.abs(AUTO_TAIL_LATERAL_STEPS[0]));
+      const weight = (0.55 + normalizedInward * 0.45) * (0.65 + normalizedCenter * 0.35) * (alpha / 255);
+      const quantized = {
+        r: quantizeColor(pixel[0]),
+        g: quantizeColor(pixel[1]),
+        b: quantizeColor(pixel[2]),
+      };
+      const key = `${quantized.r}-${quantized.g}-${quantized.b}`;
+      const current = bins.get(key) ?? { ...quantized, weight: 0 };
+
+      current.weight += weight;
+      bins.set(key, current);
+      weightedR += pixel[0] * weight;
+      weightedG += pixel[1] * weight;
+      weightedB += pixel[2] * weight;
+      totalWeight += weight;
+    }
+  }
+
+  if (totalWeight === 0 || bins.size === 0) {
+    return null;
+  }
+
+  const dominantBin = [...bins.values()].sort((a, b) => b.weight - a.weight)[0];
+  const dominantRatio = dominantBin.weight / totalWeight;
+  const color = dominantRatio >= 0.34
+    ? colorToHex(dominantBin)
+    : colorToHex({
+        r: weightedR / totalWeight,
+        g: weightedG / totalWeight,
+        b: weightedB / totalWeight,
+      });
+
+  return color;
+}
+
+function syncTailAutoColorIfNeeded({ trackUndo = false } = {}) {
+  if (!state.tailAutoColor || isAutoTailColorApplying) {
+    return;
+  }
+
+  const detectedColor = detectTailAutoColor();
+
+  if (!detectedColor || detectedColor === state.tailColor) {
+    return;
+  }
+
+  if (trackUndo) {
+    pushUndoSnapshot();
+  }
+
+  isAutoTailColorApplying = true;
+  state.tailColor = detectedColor;
+
+  if (tailColorInput) {
+    tailColorInput.value = detectedColor;
+  }
+
+  syncTailColorHexField();
+  isAutoTailColorApplying = false;
+  scheduleRender();
+}
+
 function applyState(nextState) {
   Object.assign(state, normalizeStateValues(nextState));
   syncControlsFromState(controls, state);
   syncTailColorHexField();
+  syncTailColorInputLock();
   render();
 }
 
@@ -509,6 +667,26 @@ function closeResetConfirmDialog() {
   resetDialogReturnFocusElement = null;
 }
 
+function openImageResetConfirmDialog() {
+  if (!imageResetConfirmDialog || isPlaceholderImage(image)) {
+    return;
+  }
+
+  imageResetDialogReturnFocusElement = document.activeElement;
+  imageResetConfirmDialog.hidden = false;
+  cancelImageResetButton?.focus();
+}
+
+function closeImageResetConfirmDialog() {
+  if (!imageResetConfirmDialog) {
+    return;
+  }
+
+  imageResetConfirmDialog.hidden = true;
+  imageResetDialogReturnFocusElement?.focus();
+  imageResetDialogReturnFocusElement = null;
+}
+
 function showMobilePanel(panelName) {
   for (const button of mobileTabButtons) {
     button.setAttribute("aria-pressed", String(button.dataset.mobileTab === panelName));
@@ -722,6 +900,16 @@ if (tailColorInput) {
   });
 }
 
+if (tailAutoColorToggle) {
+  tailAutoColorToggle.addEventListener("change", () => {
+    syncTailColorInputLock();
+
+    if (state.tailAutoColor) {
+      syncTailAutoColorIfNeeded();
+    }
+  });
+}
+
 for (const summary of document.querySelectorAll("details.control-group > summary")) {
   summary.addEventListener("click", (event) => {
     if (!mobileUiQuery.matches) {
@@ -772,6 +960,14 @@ resetConfirmDialog.addEventListener("click", (event) => {
   }
 });
 
+if (imageResetConfirmDialog) {
+  imageResetConfirmDialog.addEventListener("click", (event) => {
+    if (event.target === imageResetConfirmDialog) {
+      closeImageResetConfirmDialog();
+    }
+  });
+}
+
 cancelResetButton.addEventListener("click", () => {
   closeResetConfirmDialog();
 });
@@ -780,6 +976,19 @@ confirmResetButton.addEventListener("click", () => {
   closeResetConfirmDialog();
   performResetAll();
 });
+
+if (cancelImageResetButton) {
+  cancelImageResetButton.addEventListener("click", () => {
+    closeImageResetConfirmDialog();
+  });
+}
+
+if (confirmImageResetButton) {
+  confirmImageResetButton.addEventListener("click", () => {
+    closeImageResetConfirmDialog();
+    resetImage();
+  });
+}
 
 window.addEventListener("keydown", (event) => {
   const typingTarget = event.target;
@@ -802,6 +1011,11 @@ window.addEventListener("keydown", (event) => {
   }
 
   if (event.key !== "Escape") {
+    return;
+  }
+
+  if (imageResetConfirmDialog && !imageResetConfirmDialog.hidden) {
+    closeImageResetConfirmDialog();
     return;
   }
 
@@ -877,7 +1091,7 @@ downloadButton.addEventListener("click", () => {
 });
 
 mobileDownloadButton.addEventListener("click", downloadPng);
-mobileResetImageButton.addEventListener("click", resetImage);
+mobileResetImageButton?.addEventListener("click", openImageResetConfirmDialog);
 mobileResetButton.addEventListener("click", openResetConfirmDialog);
 resetAllButton.addEventListener("click", openResetConfirmDialog);
 resetTransformButton.addEventListener("click", () => resetKeys(transformKeys));

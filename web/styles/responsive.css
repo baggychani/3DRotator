@@ -417,9 +417,9 @@
     max-height: none;
     aspect-ratio: auto;
     object-fit: cover;
-    object-position: 50% 47.5%;
-    transform: scale(1.66);
-    transform-origin: center;
+    object-position: center center;
+    transform: translateY(-5.5%) scale(1.75);
+    transform-origin: center center;
   }
 
   .stage-card__viewport:has(canvas.is-placeholder-preview)::before,
@@ -435,7 +435,7 @@
   }
 
   .stage-card__viewport:has(canvas.is-placeholder-preview)::before {
-    top: calc(50% - 0.95rem);
+    top: calc(44.4% - 0.95rem);
     content: "탭하여 사진 추가";
     font-size: 0.98rem;
     font-weight: 600;
@@ -443,7 +443,7 @@
   }
 
   .stage-card__viewport:has(canvas.is-placeholder-preview)::after {
-    top: calc(50% + 0.52rem);
+    top: calc(44.4% + 0.52rem);
     color: #697182;
     content: "이미지를 선택해 바로 편집";
     font-size: 0.72rem;
@@ -621,6 +621,48 @@
     margin-bottom: 0.86rem;
     color: var(--mobile-muted);
     font-size: 0.85rem;
+  }
+
+  .tail-auto-color-field {
+    min-height: 2.05rem;
+    margin-top: -0.05rem;
+    margin-bottom: 0.82rem;
+    padding: 0.32rem 0.42rem;
+    border-color: var(--mobile-border);
+    border-radius: 0.72rem;
+    background: #ffffff;
+  }
+
+  .tail-auto-color-field input[type="checkbox"] {
+    width: 2.7rem;
+    height: 1.5rem;
+  }
+
+  .tail-auto-color-field .switch {
+    width: 2.7rem;
+    height: 1.5rem;
+  }
+
+  .tail-auto-color-field .switch::after {
+    left: 0.17rem;
+    width: 1.08rem;
+    height: 1.08rem;
+  }
+
+  .tail-auto-color-field input:checked + .switch::after {
+    left: 1.42rem;
+  }
+
+  .tail-auto-color-field .tail-auto-color-field__text {
+    font-size: 0.76rem;
+    font-weight: 430;
+  }
+
+  .tail-auto-color-field .lab-pill {
+    border-color: #cdd6ef;
+    background: #f0f3ff;
+    color: #4c5ec2;
+    font-size: 0.64rem;
   }
 
   .axis-label,
@@ -930,6 +972,17 @@
     border-color: var(--mobile-border);
     background: rgba(255, 255, 255, 0.86);
     color: var(--mobile-muted);
+  }
+
+  .tail-auto-color-field {
+    border-color: var(--mobile-border);
+    background: var(--mobile-surface);
+  }
+
+  .tail-auto-color-field .lab-pill {
+    border-color: #3a4251;
+    background: #252b42;
+    color: #b9c8ff;
   }
 
   select,

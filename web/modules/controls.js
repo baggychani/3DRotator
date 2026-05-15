@@ -126,7 +126,7 @@ function bindTouchRangeDrag(control, state, onChange) {
   });
 }
 
-function resetControlToDefault(control, state, initialState, onChange) {
+function resetControlToDefault(control, state, initialState, controls, onChange) {
   const key = control.dataset.control;
 
   if (!(key in initialState)) {
@@ -134,14 +134,7 @@ function resetControlToDefault(control, state, initialState, onChange) {
   }
 
   state[key] = initialState[key];
-  if (control.type === "checkbox") {
-    control.checked = state[key];
-  } else if (control.type === "radio") {
-    control.checked = control.value === state[key];
-  } else {
-    control.value = state[key];
-  }
-  syncOutputForControl(control);
+  syncControlsFromState(controls, state);
   onChange();
 }
 
@@ -169,7 +162,7 @@ export function bindControlEvents(controls, state, initialState, onChange, befor
     });
     control.addEventListener("dblclick", () => {
       beforeHistoryRecord();
-      resetControlToDefault(control, state, initialState, onChange);
+      resetControlToDefault(control, state, initialState, controls, onChange);
     });
   }
 }

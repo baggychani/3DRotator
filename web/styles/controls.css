@@ -528,6 +528,49 @@ input[type="range"]::-moz-range-thumb {
   gap: 0.55rem;
 }
 
+.tail-auto-color-field {
+  grid-template-columns: auto 1fr auto;
+  column-gap: 0.62rem;
+  margin-top: -0.08rem;
+  margin-bottom: 0.95rem;
+  min-height: 2.2rem;
+  padding: 0.38rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+  font-size: 0.83rem;
+}
+
+.tail-auto-color-field .tail-auto-color-field__text {
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+}
+
+.tail-auto-color-field input[type="checkbox"] {
+  width: 3.2rem;
+  height: 1.8rem;
+  margin: 0;
+}
+
+.tail-auto-color-field .lab-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 2.7rem;
+  padding: 0.09rem 0.42rem;
+  border: 1px solid rgba(144, 156, 208, 0.45);
+  border-radius: 999px;
+  background: rgba(124, 143, 229, 0.14);
+  color: #d8e0ff;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
 .tail-color-row input[type="color"] {
   flex: 0 0 auto;
   width: 2.65rem;

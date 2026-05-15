@@ -561,6 +561,50 @@ export function getTailHandlePoint(canvas, image, state) {
   return scene.tailPath?.[1] ?? null;
 }
 
+export function getTailAttachmentInfo(canvas, image, state) {
+  if (!state.tailEnabled) {
+    return null;
+  }
+
+  const scene = getFittedScene(canvas, image, state);
+  const sideToCornerIndexes = {
+    top: [0, 1],
+    right: [1, 2],
+    bottom: [3, 2],
+    left: [0, 3],
+  };
+  const [startIndex, endIndex] = sideToCornerIndexes[state.tailSide] ?? sideToCornerIndexes.bottom;
+  const edgeStart = scene.imageCorners[startIndex];
+  const edgeEnd = scene.imageCorners[endIndex];
+  const edge = normalizeVector({
+    x: edgeEnd.x - edgeStart.x,
+    y: edgeEnd.y - edgeStart.y,
+  });
+  const edgeVector = {
+    x: edgeEnd.x - edgeStart.x,
+    y: edgeEnd.y - edgeStart.y,
+  };
+  const imageCenter = {
+    x: scene.imageCorners.reduce((sum, corner) => sum + corner.x, 0) / scene.imageCorners.length,
+    y: scene.imageCorners.reduce((sum, corner) => sum + corner.y, 0) / scene.imageCorners.length,
+  };
+  const anchor = {
+    x: edgeStart.x + edgeVector.x * (state.tailPosition / 100),
+    y: edgeStart.y + edgeVector.y * (state.tailPosition / 100),
+  };
+  const inwardCandidates = [
+    normalizeVector({ x: -edge.y, y: edge.x }),
+    normalizeVector({ x: edge.y, y: -edge.x }),
+  ];
+  const toCenterVector = { x: imageCenter.x - anchor.x, y: imageCenter.y - anchor.y };
+  const inwardNormal =
+    dotVectors(inwardCandidates[0], toCenterVector) > dotVectors(inwardCandidates[1], toCenterVector)
+      ? inwardCandidates[0]
+      : inwardCandidates[1];
+
+  return { anchor, inwardNormal };
+}
+
 export function getTailDragValues(canvas, image, state, canvasPoint) {
   const scene = getFittedScene(canvas, image, state);
 

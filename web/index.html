@@ -191,6 +191,12 @@
               />
             </span>
           </label>
+          <label class="switch-field tail-auto-color-field">
+            <input id="tailAutoColor" data-control="tailAutoColor" type="checkbox" />
+            <span class="switch"></span>
+            <span class="tail-auto-color-field__text">꼬리 색 자동 맞추기</span>
+            <span class="lab-pill" aria-label="실험실 기능">실험실</span>
+          </label>
         </details>
       </section>
     </main>
@@ -226,6 +232,25 @@
         <div class="dialog-actions">
           <button id="cancelResetButton" type="button" class="secondary">취소</button>
           <button id="confirmResetButton" type="button" class="danger">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="imageResetConfirmDialog" class="dialog-backdrop" role="presentation" hidden>
+      <div
+        class="confirm-dialog modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="imageResetConfirmTitle"
+        aria-describedby="imageResetConfirmHint"
+      >
+        <h2 id="imageResetConfirmTitle">이미지를 초기화할까요?</h2>
+        <p id="imageResetConfirmHint" class="confirm-dialog__hint">
+          올려둔 사진이 제거되고 안내 화면으로 돌아갑니다. 편집 설정(회전·그림자 등)은 그대로입니다.
+        </p>
+        <div class="dialog-actions">
+          <button id="cancelImageResetButton" type="button" class="secondary">취소</button>
+          <button id="confirmImageResetButton" type="button" class="danger">이미지 초기화</button>
         </div>
       </div>
     </div>
